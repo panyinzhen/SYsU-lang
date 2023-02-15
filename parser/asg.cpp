@@ -71,7 +71,8 @@ Ast2Asg::operator()(ast::DeclarationSpecifiersContext* ctx)
           assert(false);
       }
 
-      throw err::Lit("invalid type specifier combination.");
+      else
+        throw err::Lit("invalid type specifier combination.");
     }
 
     else if (auto p = i->typeQualifier()) {
@@ -318,10 +319,10 @@ Ast2Asg::operator()(ast::EqualityExpressionContext* ctx)
   auto& children = ctx->children;
 
   if (children.size() == 1)
-    return self(dynamic_cast<ast::EqualityExpressionContext*>(children[0]));
+    return self(dynamic_cast<ast::RelationalExpressionContext*>(children[0]));
 
   auto& ret = make<BinaryExpr>();
-  ret.lft = self(dynamic_cast<ast::EqualityExpressionContext*>(children[0]));
+  ret.lft = self(dynamic_cast<ast::RelationalExpressionContext*>(children[0]));
 
   auto node = &ret;
   unsigned i = 1;
@@ -346,7 +347,7 @@ Ast2Asg::operator()(ast::EqualityExpressionContext* ctx)
 
     auto& rht = make<BinaryExpr>();
     rht.lft =
-      self(dynamic_cast<ast::EqualityExpressionContext*>(children[i + 1]));
+      self(dynamic_cast<ast::RelationalExpressionContext*>(children[i + 1]));
     node->rht = &rht;
     node = &rht;
 
@@ -354,7 +355,7 @@ Ast2Asg::operator()(ast::EqualityExpressionContext* ctx)
   }
 
   node->rht =
-    self(dynamic_cast<ast::EqualityExpressionContext*>(children[i + 1]));
+    self(dynamic_cast<ast::RelationalExpressionContext*>(children[i + 1]));
 
   return &ret;
 }
@@ -705,6 +706,9 @@ Ast2Asg::operator()(ast::StatementContext* ctx)
   if (auto p = ctx->iterationStatement())
     return self(p);
 
+  if (auto p = ctx->jumpStatement())
+    return self(p);
+
   assert(false);
 }
 
@@ -766,20 +770,58 @@ Ast2Asg::operator()(ast::SelectionStatementContext* ctx)
 Stmt*
 Ast2Asg::operator()(ast::IterationStatementContext* ctx)
 {
-  auto cond = self(ctx->expression());
-  auto body = self(ctx->statement());
-
   if (ctx->Do()) {
     auto& ret = make<DoStmt>();
-    ret.cond = cond;
-    ret.body = body;
+
+    {
+      CurrentLoop guard(self, &ret);
+      ret.body = self(ctx->statement());
+    }
+
+    ret.cond = self(ctx->expression());
+
     return &ret;
   }
 
-  auto& ret = make<WhileStmt>();
-  ret.cond = cond;
-  ret.body = body;
-  return &ret;
+  else {
+    auto& ret = make<WhileStmt>();
+
+    ret.cond = self(ctx->expression());
+
+    {
+      CurrentLoop guard(self, &ret);
+      ret.body = self(ctx->statement());
+    }
+
+    return &ret;
+  }
+}
+
+Stmt*
+Ast2Asg::operator()(ast::JumpStatementContext* ctx)
+{
+  if (ctx->Continue()) {
+    auto& ret = make<ContinueStmt>();
+    assert(_currentLoop != nullptr);
+    ret.loop = _currentLoop;
+    return &ret;
+  }
+
+  if (ctx->Break()) {
+    auto& ret = make<BreakStmt>();
+    assert(_currentLoop != nullptr);
+    ret.loop = _currentLoop;
+    return &ret;
+  }
+
+  if (ctx->Return()) {
+    auto& ret = make<ReturnStmt>();
+    if (auto p = ctx->expression())
+      ret.expr = self(p);
+    return &ret;
+  }
+
+  assert(false);
 }
 
 /// 声明
@@ -838,7 +880,11 @@ Ast2Asg::operator()(ast::InitDeclaratorContext* ctx, Type::Specs specs)
   auto [texp, name] = self(ctx->declarator());
   ret.type = { specs, texp };
   ret.name = std::move(name);
-  ret.init = self(ctx->initializer());
+
+  if (auto p = ctx->initializer())
+    ret.init = self(p);
+  else
+    ret.init = nullptr;
 
   // 这个实现允许符号重复定义，新定义会取代旧定义
   (*_localDecls)[ret.name] = &ret;
@@ -917,7 +963,7 @@ Ast2Asg::operator()(ast::InitializerListContext* ctx)
       elem.val = self(p);
     else
       assert(false);
-    
+
     ret.list.push_back(elem);
   }
 

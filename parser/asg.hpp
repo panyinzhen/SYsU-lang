@@ -248,10 +248,14 @@ struct DoStmt : public Stmt
 };
 
 struct BreakStmt : public Stmt
-{};
+{
+  Stmt* loop;
+};
 
 struct ContinueStmt : public Stmt
-{};
+{
+  Stmt* loop;
+};
 
 struct ReturnStmt : public Stmt
 {
@@ -323,6 +327,23 @@ private:
 
   LocalDecls* _localDecls{ nullptr };
 
+  struct CurrentLoop
+  {
+    Ast2Asg& _self;
+    Stmt* _prev;
+
+    CurrentLoop(Ast2Asg& self, Stmt* loop)
+      : _self(self)
+      , _prev(self._currentLoop)
+    {
+      _self._currentLoop = loop;
+    }
+
+    ~CurrentLoop() { _self._currentLoop = _prev; }
+  };
+
+  Stmt* _currentLoop{ nullptr };
+
 private:
   //============================================================================
   // 类型
@@ -380,6 +401,8 @@ private:
   Stmt* operator()(ast::SelectionStatementContext* ctx);
 
   Stmt* operator()(ast::IterationStatementContext* ctx);
+
+  Stmt* operator()(ast::JumpStatementContext* ctx);
 
   //============================================================================
   // 声明

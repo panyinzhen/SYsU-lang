@@ -411,7 +411,7 @@ statement
     |   expressionStatement
     |   selectionStatement
     |   iterationStatement
-    // |   jumpStatement
+    |   jumpStatement
     // |   ('__asm' | '__asm__') ('volatile' | '__volatile__') '(' (logicalOrExpression (',' logicalOrExpression)*)? (':' (logicalOrExpression (',' logicalOrExpression)*)?)* ')' ';'
     ;
 
@@ -464,14 +464,14 @@ iterationStatement
 //     :   assignmentExpression (',' assignmentExpression)*
 //     ;
 
-// jumpStatement
+jumpStatement
 //     :   ('goto' Identifier
-//     |   ('continue'| 'break')
-//     |   'return' expression?
+    :   ('continue'| 'break')
+    |   'return' expression?
 //     |   'goto' unaryExpression // GCC extension
 //     )
 //     ';'
-//     ;
+    ;
 
 compilationUnit
     :   translationUnit? EOF
@@ -656,7 +656,8 @@ BinaryConstant
 
 fragment
 DecimalConstant
-    :   NonzeroDigit Digit*
+    // :   NonzeroDigit Digit*
+    :   Digit+
     ;
 
 fragment
