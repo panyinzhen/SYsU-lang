@@ -9,6 +9,19 @@ namespace asg {
 // Ast2Asg
 //==============================================================================
 
+Decl*
+Ast2Asg::LocalDecls::resolve(const std::string& name)
+{
+  auto iter = find(name);
+  if (iter != end())
+    return iter->second;
+
+  if (_prev == nullptr)
+    throw err::Lit("undeclared identifier.");
+
+  return _prev->resolve(name);
+}
+
 TranslationUnit
 Ast2Asg::operator()(ast::TranslationUnitContext* ctx)
 {
@@ -591,12 +604,8 @@ Ast2Asg::operator()(ast::PrimaryExpressionContext* ctx)
 
   if (auto p = ctx->Identifier()) {
     auto name = p->getText();
-    auto iter = _localDecls->find(name);
-    if (iter == _localDecls->end())
-      throw err::Lit("undeclared identifier.");
-
     auto& ret = make<DeclRefExpr>();
-    ret.decl = iter->second;
+    ret.decl = _localDecls->resolve(name);
     return &ret;
   }
 

@@ -4,6 +4,7 @@
 #include <llvm/ADT/StringMap.h>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace asg {
@@ -310,7 +311,7 @@ public:
   TranslationUnit operator()(ast::TranslationUnitContext* ctx);
 
 private:
-  struct LocalDecls : public llvm::StringMap<Decl*>
+  struct LocalDecls : public std::unordered_map<std::string, Decl*>
   {
     Ast2Asg& _self;
     LocalDecls* _prev;
@@ -323,6 +324,8 @@ private:
     }
 
     ~LocalDecls() { _self._localDecls = _prev; }
+
+    Decl* resolve(const std::string& name);
   };
 
   LocalDecls* _localDecls{ nullptr };
