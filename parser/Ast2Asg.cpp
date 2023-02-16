@@ -61,19 +61,19 @@ Ast2Asg::operator()(ast::DeclarationSpecifiersContext* ctx)
   for (auto&& i : ctx->declarationSpecifier()) {
     if (auto p = i->typeSpecifier()) {
       if (p->Long()) {
-        if (ret.base == Type::Specs::kINVALID)
-          ret.base = Type::Specs::kLong;
-        else if (ret.base == Type::Specs::kLong)
-          ret.base = Type::Specs::kLongLong;
+        if (ret.base == ret.kINVALID)
+          ret.base = ret.kLong;
+        else if (ret.base == ret.kLong)
+          ret.base = ret.kLongLong;
       }
 
-      else if (ret.base == Type::Specs::kINVALID) {
+      else if (ret.base == ret.kINVALID) {
         if (p->Void())
-          ret.base = Type::Specs::kVoid;
+          ret.base = ret.kVoid;
         else if (p->Char())
-          ret.base = Type::Specs::kChar;
+          ret.base = ret.kChar;
         else if (p->Int())
-          ret.base = Type::Specs::kInt;
+          ret.base = ret.kInt;
         else
           abort();
       }
@@ -142,13 +142,6 @@ Ast2Asg::operator()(ast::DeclarationSpecifiers2Context* ctx)
 std::pair<TypeExpr*, std::string>
 Ast2Asg::operator()(ast::DeclaratorContext* ctx)
 {
-  if (ctx->pointer()) {
-    auto& ret = make<PointerType>();
-    auto [sub, name] = self(ctx->directDeclarator());
-    ret.sub = sub;
-    return { &ret, std::move(name) };
-  }
-
   return self(ctx->directDeclarator());
 }
 
@@ -184,17 +177,6 @@ Ast2Asg::operator()(ast::DirectDeclaratorContext* ctx)
 TypeExpr*
 Ast2Asg::operator()(ast::AbstractDeclaratorContext* ctx)
 {
-  if (ctx->pointer()) {
-    auto& ret = make<PointerType>();
-
-    if (auto p = ctx->directAbstractDeclarator())
-      ret.sub = self(p);
-    else
-      ret.sub = nullptr;
-
-    return &ret;
-  }
-
   return self(ctx->directAbstractDeclarator());
 }
 
@@ -814,7 +796,8 @@ Ast2Asg::operator()(ast::InitDeclaratorContext* ctx, Type::Specs specs)
   auto& ret = make<VarDecl>();
 
   auto [texp, name] = self(ctx->declarator());
-  ret.type = { specs, texp };
+  ret.type.specs = specs;
+  ret.type.texp = texp;
   ret.name = std::move(name);
 
   if (auto p = ctx->initializer())

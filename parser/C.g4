@@ -268,7 +268,7 @@ typeQualifier
 
 declarator
     // :   pointer? directDeclarator gccDeclaratorExtension*
-    :   pointer? directDeclarator
+    :   directDeclarator
     ;
 
 directDeclarator
@@ -353,7 +353,7 @@ identifierList
 abstractDeclarator
     :   pointer
     // |   pointer? directAbstractDeclarator gccDeclaratorExtension*
-    |   pointer? directAbstractDeclarator
+    |   directAbstractDeclarator
     ;
 
 directAbstractDeclarator

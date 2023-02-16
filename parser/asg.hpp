@@ -95,6 +95,13 @@ struct Expr;
 
 struct Type
 {
+  enum Category
+  {
+    kINVALID,
+    kPrvalue,
+    kLalue,
+  } cate{ kINVALID };
+
   struct Specs
   {
     enum
@@ -115,6 +122,7 @@ struct Type
     {
     }
   } specs;
+
   TypeExpr* texp;
 };
 
@@ -122,9 +130,6 @@ struct TypeExpr : public Obj
 {
   TypeExpr* sub;
 };
-
-struct PointerType : public TypeExpr
-{};
 
 struct ArrayType : public TypeExpr
 {
@@ -205,6 +210,11 @@ struct CallExpr : public Expr
 {
   Expr* head;
   std::vector<Expr*> args;
+};
+
+struct ImplicitCastExpr : public Expr
+{
+  Expr* sub;
 };
 
 //==============================================================================
@@ -294,10 +304,70 @@ using TranslationUnit = std::vector<Decl*>;
 // 工具类
 //==============================================================================
 
+/**
+ * @brief 在抽象语法图上自动推导并补全类型
+ */
 class TypeInfer
 {
 public:
   Obj::Mgr _mgr;
+
+public:
+  void operator()(TranslationUnit& tu);
+
+  //============================================================================
+  // 表达式
+  //============================================================================
+
+  Expr* operator()(Expr* obj);
+
+  Expr* operator()(IntegerLiteral* obj);
+
+  Expr* operator()(StringLiteral* obj);
+
+  Expr* operator()(DeclRefExpr* obj);
+
+  Expr* operator()(UnaryExpr* obj);
+
+  Expr* operator()(BinaryExpr* obj);
+
+  Expr* operator()(CallExpr* obj);
+
+  //============================================================================
+  // 语句
+  //============================================================================
+
+  void operator()(Stmt* obj);
+
+  void operator()(DeclStmt* obj);
+
+  void operator()(ExprStmt* obj);
+
+  void operator()(CompoundStmt* obj);
+
+  void operator()(IfStmt* obj);
+
+  void operator()(WhileStmt* obj);
+
+  void operator()(DoStmt* obj);
+
+  void operator()(BreakStmt* obj);
+
+  void operator()(ContinueStmt* obj);
+
+  void operator()(ReturnStmt* obj);
+
+  //============================================================================
+  // 声明
+  //============================================================================
+
+  void operator()(Decl* obj);
+
+  void operator()(VarDecl* obj);
+
+  void operator()(FunctionDecl* obj);
+
+  void operator()(Obj::Ptr<Expr, InitList> obj);
 
 private:
   template<typename T, typename... Args>
