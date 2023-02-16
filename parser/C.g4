@@ -470,7 +470,7 @@ jumpStatement
     |   'return' expression?
 //     |   'goto' unaryExpression // GCC extension
 //     )
-//     ';'
+    ';'
     ;
 
 compilationUnit

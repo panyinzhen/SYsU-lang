@@ -1,3 +1,4 @@
+#include "Asg2Json.hpp"
 #include "Ast2Asg.hpp"
 #include "CLexer.h"
 #include "asg.hpp"
@@ -20,19 +21,17 @@ main(int argc, char* argv[])
 
   antlr4::CommonTokenStream tokens(&lexer);
   // tokens.fill();
-  // for (auto token : tokens.getTokens()) {
+  // for (auto token : tokens.getTokens())
   //   std::cout << token->toString() << std::endl;
-  // }
 
   CParser parser(&tokens);
-  auto cu = parser.compilationUnit();
-  std::cout << cu->toStringTree(true) << std::endl;
+  auto ast = parser.compilationUnit();
+  std::cout << ast->toStringTree(true) << std::endl;
 
   asg::Ast2Asg ast2asg;
-  auto tu = ast2asg(cu->translationUnit());
+  auto asg = ast2asg(ast->translationUnit());
 
-  // Value val = to_json(*parser.compilationUnit());
-  // llvm::outs() << val << '\n';
-
-  std::cout << tu.size() << std::endl;
+  asg::Asg2Json asg2json;
+  llvm::json::Value json = asg2json(asg);
+  llvm::outs() << json << '\n';
 }

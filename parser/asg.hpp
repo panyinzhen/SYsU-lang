@@ -32,13 +32,13 @@ public:
   template<typename T>
   T* dcast()
   {
-    return dynamic_cast<T>(this);
+    return dynamic_cast<T*>(this);
   }
 
   template<typename T>
-  T* rcast()
+  T& rcast()
   {
-    return reinterpret_cast<T>(this);
+    return reinterpret_cast<T*>(this);
   }
 };
 
