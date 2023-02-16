@@ -2,27 +2,21 @@
   "inner": [
     {
       "inner": [
-        {
-          "inner": [
-            {
-              "inner": [{ "kind": "VarDecl", "name": "a" }],
-              "kind": "DeclStmt"
-            },
-            {
-              "inner": [{ "kind": "VarDecl", "name": "b" }],
-              "kind": "DeclStmt"
-            },
-            {
-              "inner": [{ "kind": "IntegerLiteral", "value": "0" }],
-              "kind": "ReturnStmt"
-            }
-          ],
-          "kind": "CompoundStmt"
-        }
+        { "kind": "DeclRefExpr" },
+        { "kind": "IntegerLiteral", "value": "2" }
       ],
-      "kind": "FunctionDecl",
-      "name": "main"
+      "kind": "BinaryOperator",
+      "opcode": "*"
+    },
+    {
+      "inner": [
+        { "kind": "DeclRefExpr" },
+        { "kind": "IntegerLiteral", "value": "3" }
+      ],
+      "kind": "BinaryOperator",
+      "opcode": "+"
     }
   ],
-  "kind": "TranslationUnitDecl"
+  "kind": "BinaryOperator",
+  "opcode": "+"
 }

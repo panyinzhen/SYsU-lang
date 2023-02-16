@@ -9,7 +9,7 @@
       "request": "launch",
       "name": "sysu-parser",
       "program": "/root/sysu/build/parser/sysu-parser",
-      "args": ["tester/functional/000_main.sysu.c"],
+      "args": ["/root/SYsU-lang/tester/functional/1081_jump_game.sysu.c"],
       "cwd": "${workspaceFolder}"
     }
   ]

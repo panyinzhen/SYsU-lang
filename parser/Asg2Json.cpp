@@ -47,7 +47,7 @@ Asg2Json::operator()(Expr* obj)
   if (auto p = obj->dcast<CallExpr>())
     return self(p);
 
-  assert(false);
+  abort();
 }
 
 json::Object
@@ -109,7 +109,7 @@ Asg2Json::operator()(UnaryExpr* obj)
       break;
 
     default:
-      assert(false);
+      abort();
   }
 
   json::Array inner;
@@ -195,7 +195,7 @@ Asg2Json::operator()(BinaryExpr* obj)
       break;
 
     default:
-      assert(false);
+      abort();
   }
 
   json::Array inner;
@@ -265,7 +265,7 @@ Asg2Json::operator()(Stmt* obj)
     return ret;
   }
 
-  assert(false);
+  abort();
 }
 
 json::Object
@@ -409,7 +409,7 @@ Asg2Json::operator()(Decl* obj)
   if (auto p = obj->dcast<FunctionDecl>())
     return self(p);
 
-  assert(false);
+  abort();
 }
 
 json::Object
@@ -423,7 +423,8 @@ Asg2Json::operator()(VarDecl* obj)
   ret["name"] = obj->name;
 
   json::Array inner;
-  inner.push_back(self(obj->init));
+  if (obj->init)
+    inner.push_back(self(obj->init));
   ret["inner"] = std::move(inner);
 
   return ret;
@@ -457,10 +458,19 @@ Asg2Json::operator()(Obj::Ptr<Expr, InitList> obj)
     return self(p);
 
   if (auto p = obj.dcast<InitList>()) {
+    json::Object ret;
 
+    ret["kind"] = "InitListExpr";
+
+    json::Array inner;
+    for (auto&& i : p->list)
+      inner.push_back(self(i));
+    ret["inner"] = std::move(inner);
+
+    return ret;
   }
 
-  assert(false);
+  abort();
 }
 
 }

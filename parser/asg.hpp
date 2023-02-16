@@ -70,6 +70,8 @@ public:
   {
   }
 
+  operator bool() { return _ != nullptr; }
+
 public:
   template<typename T, typename = std::enable_if_t<is_one_of<T, Ts...>::value>>
   T* dcast()
@@ -272,12 +274,7 @@ struct Decl : public Obj
 
 struct InitList : public Obj
 {
-  struct Elem
-  {
-    Expr* des;
-    Obj::Ptr<Expr, InitList> val;
-  };
-  std::vector<Elem> list;
+  std::vector<Obj::Ptr<Expr, InitList>> list;
 };
 
 struct VarDecl : public Decl

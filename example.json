@@ -1,5 +1,5 @@
 {
-  "id": "0x1622ac8",
+  "id": "0xef6ac8",
   "kind": "TranslationUnitDecl",
   "loc": {},
   "range": {
@@ -8,7 +8,7 @@
   },
   "inner": [
     {
-      "id": "0x16232f0",
+      "id": "0xef72f0",
       "kind": "TypedefDecl",
       "loc": {},
       "range": {
@@ -22,7 +22,7 @@
       },
       "inner": [
         {
-          "id": "0x1623090",
+          "id": "0xef7090",
           "kind": "BuiltinType",
           "type": {
             "qualType": "__int128"
@@ -31,7 +31,7 @@
       ]
     },
     {
-      "id": "0x1623360",
+      "id": "0xef7360",
       "kind": "TypedefDecl",
       "loc": {},
       "range": {
@@ -45,7 +45,7 @@
       },
       "inner": [
         {
-          "id": "0x16230b0",
+          "id": "0xef70b0",
           "kind": "BuiltinType",
           "type": {
             "qualType": "unsigned __int128"
@@ -54,7 +54,7 @@
       ]
     },
     {
-      "id": "0x1623668",
+      "id": "0xef7668",
       "kind": "TypedefDecl",
       "loc": {},
       "range": {
@@ -68,13 +68,13 @@
       },
       "inner": [
         {
-          "id": "0x1623440",
+          "id": "0xef7440",
           "kind": "RecordType",
           "type": {
             "qualType": "struct __NSConstantString_tag"
           },
           "decl": {
-            "id": "0x16233b8",
+            "id": "0xef73b8",
             "kind": "RecordDecl",
             "name": "__NSConstantString_tag"
           }
@@ -82,7 +82,7 @@
       ]
     },
     {
-      "id": "0x1623700",
+      "id": "0xef7700",
       "kind": "TypedefDecl",
       "loc": {},
       "range": {
@@ -96,14 +96,14 @@
       },
       "inner": [
         {
-          "id": "0x16236c0",
+          "id": "0xef76c0",
           "kind": "PointerType",
           "type": {
             "qualType": "char *"
           },
           "inner": [
             {
-              "id": "0x1622b70",
+              "id": "0xef6b70",
               "kind": "BuiltinType",
               "type": {
                 "qualType": "char"
@@ -114,7 +114,7 @@
       ]
     },
     {
-      "id": "0x16239f8",
+      "id": "0xef79f8",
       "kind": "TypedefDecl",
       "loc": {},
       "range": {
@@ -128,7 +128,7 @@
       },
       "inner": [
         {
-          "id": "0x16239a0",
+          "id": "0xef79a0",
           "kind": "ConstantArrayType",
           "type": {
             "qualType": "struct __va_list_tag[1]"
@@ -136,13 +136,13 @@
           "size": 1,
           "inner": [
             {
-              "id": "0x16237e0",
+              "id": "0xef77e0",
               "kind": "RecordType",
               "type": {
                 "qualType": "struct __va_list_tag"
               },
               "decl": {
-                "id": "0x1623758",
+                "id": "0xef7758",
                 "kind": "RecordDecl",
                 "name": "__va_list_tag"
               }
@@ -152,14 +152,14 @@
       ]
     },
     {
-      "id": "0x1688540",
-      "kind": "VarDecl",
+      "id": "0xf5c4e0",
+      "kind": "FunctionDecl",
       "loc": {
         "offset": 4,
         "file": "<stdin>",
         "line": 1,
         "col": 5,
-        "tokLen": 1
+        "tokLen": 4
       },
       "range": {
         "begin": {
@@ -169,61 +169,48 @@
         },
         "end": {
           "offset": 22,
-          "col": 23,
+          "line": 4,
+          "col": 1,
           "tokLen": 1
         }
       },
-      "name": "a",
-      "mangledName": "a",
+      "name": "main",
+      "mangledName": "main",
       "type": {
-        "qualType": "int[10]"
+        "qualType": "int ()"
       },
-      "init": "c",
       "inner": [
         {
-          "id": "0x1688800",
-          "kind": "InitListExpr",
+          "id": "0xf5c6a8",
+          "kind": "CompoundStmt",
           "range": {
             "begin": {
-              "offset": 10,
-              "col": 11,
+              "offset": 11,
+              "line": 2,
+              "col": 1,
               "tokLen": 1
             },
             "end": {
               "offset": 22,
-              "col": 23,
+              "line": 4,
+              "col": 1,
               "tokLen": 1
             }
           },
-          "type": {
-            "qualType": "int[10]"
-          },
-          "valueCategory": "prvalue",
-          "array_filler": [
+          "inner": [
             {
-              "id": "0x1688860",
-              "kind": "ImplicitValueInitExpr",
-              "range": {
-                "begin": {},
-                "end": {}
-              },
-              "type": {
-                "qualType": "int"
-              },
-              "valueCategory": "prvalue"
-            },
-            {
-              "id": "0x1688610",
-              "kind": "IntegerLiteral",
+              "id": "0xf5c688",
+              "kind": "BinaryOperator",
               "range": {
                 "begin": {
-                  "offset": 15,
-                  "col": 16,
+                  "offset": 13,
+                  "line": 3,
+                  "col": 1,
                   "tokLen": 1
                 },
                 "end": {
-                  "offset": 15,
-                  "col": 16,
+                  "offset": 19,
+                  "col": 7,
                   "tokLen": 1
                 }
               },
@@ -231,43 +218,143 @@
                 "qualType": "int"
               },
               "valueCategory": "prvalue",
-              "value": "1"
-            },
-            {
-              "id": "0x1688860",
-              "kind": "ImplicitValueInitExpr",
-              "range": {
-                "begin": {},
-                "end": {}
-              },
-              "type": {
-                "qualType": "int"
-              },
-              "valueCategory": "prvalue"
-            },
-            {
-              "id": "0x16886b8",
-              "kind": "IntegerLiteral",
-              "range": {
-                "begin": {
-                  "offset": 21,
-                  "col": 22,
-                  "tokLen": 1
+              "opcode": ",",
+              "inner": [
+                {
+                  "id": "0xf5c648",
+                  "kind": "BinaryOperator",
+                  "range": {
+                    "begin": {
+                      "offset": 13,
+                      "col": 1,
+                      "tokLen": 1
+                    },
+                    "end": {
+                      "offset": 17,
+                      "col": 5,
+                      "tokLen": 1
+                    }
+                  },
+                  "type": {
+                    "qualType": "int"
+                  },
+                  "valueCategory": "prvalue",
+                  "opcode": ",",
+                  "inner": [
+                    {
+                      "id": "0xf5c608",
+                      "kind": "BinaryOperator",
+                      "range": {
+                        "begin": {
+                          "offset": 13,
+                          "col": 1,
+                          "tokLen": 1
+                        },
+                        "end": {
+                          "offset": 15,
+                          "col": 3,
+                          "tokLen": 1
+                        }
+                      },
+                      "type": {
+                        "qualType": "int"
+                      },
+                      "valueCategory": "prvalue",
+                      "opcode": ",",
+                      "inner": [
+                        {
+                          "id": "0xf5c5c8",
+                          "kind": "IntegerLiteral",
+                          "range": {
+                            "begin": {
+                              "offset": 13,
+                              "col": 1,
+                              "tokLen": 1
+                            },
+                            "end": {
+                              "offset": 13,
+                              "col": 1,
+                              "tokLen": 1
+                            }
+                          },
+                          "type": {
+                            "qualType": "int"
+                          },
+                          "valueCategory": "prvalue",
+                          "value": "1"
+                        },
+                        {
+                          "id": "0xf5c5e8",
+                          "kind": "IntegerLiteral",
+                          "range": {
+                            "begin": {
+                              "offset": 15,
+                              "col": 3,
+                              "tokLen": 1
+                            },
+                            "end": {
+                              "offset": 15,
+                              "col": 3,
+                              "tokLen": 1
+                            }
+                          },
+                          "type": {
+                            "qualType": "int"
+                          },
+                          "valueCategory": "prvalue",
+                          "value": "1"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "0xf5c628",
+                      "kind": "IntegerLiteral",
+                      "range": {
+                        "begin": {
+                          "offset": 17,
+                          "col": 5,
+                          "tokLen": 1
+                        },
+                        "end": {
+                          "offset": 17,
+                          "col": 5,
+                          "tokLen": 1
+                        }
+                      },
+                      "type": {
+                        "qualType": "int"
+                      },
+                      "valueCategory": "prvalue",
+                      "value": "1"
+                    }
+                  ]
                 },
-                "end": {
-                  "offset": 21,
-                  "col": 22,
-                  "tokLen": 1
+                {
+                  "id": "0xf5c668",
+                  "kind": "IntegerLiteral",
+                  "range": {
+                    "begin": {
+                      "offset": 19,
+                      "col": 7,
+                      "tokLen": 1
+                    },
+                    "end": {
+                      "offset": 19,
+                      "col": 7,
+                      "tokLen": 1
+                    }
+                  },
+                  "type": {
+                    "qualType": "int"
+                  },
+                  "valueCategory": "prvalue",
+                  "value": "1"
                 }
-              },
-              "type": {
-                "qualType": "int"
-              },
-              "valueCategory": "prvalue",
-              "value": "3"
+              ]
             }
           ]
         }
       ]
     }
   ]
+}

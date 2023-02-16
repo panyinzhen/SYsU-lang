@@ -385,21 +385,22 @@ initializer
     ;
 
 initializerList
-    :   designation? initializer (',' designation? initializer)*
+    // :   designation? initializer (',' designation? initializer)*
+    :   initializer (',' initializer)*
     ;
 
-designation
-    :   designatorList '='
-    ;
+// designation
+//     :   designatorList '='
+//     ;
 
-designatorList
-    :   designator+
-    ;
+// designatorList
+//     :   designator+
+//     ;
 
-designator
-    :   '[' constantExpression ']'
-    // |   '.' Identifier
-    ;
+// designator
+//     :   '[' constantExpression ']'
+//     |   '.' Identifier
+//     ;
 
 staticAssertDeclaration
     :   '_Static_assert' '(' constantExpression ',' StringLiteral+ ')' ';'
