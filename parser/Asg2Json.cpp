@@ -127,7 +127,7 @@ Asg2Json::operator()(BinaryExpr* obj)
   json::Object ret;
   WalkedGuard guard(self, obj);
 
-  ret["kind"] = "BinaryExpr";
+  ret["kind"] = "BinaryOperator";
 
   switch (obj->op) {
     case BinaryExpr::kMul:
@@ -422,6 +422,10 @@ Asg2Json::operator()(VarDecl* obj)
 
   ret["name"] = obj->name;
 
+  json::Array inner;
+  inner.push_back(self(obj->init));
+  ret["inner"] = std::move(inner);
+
   return ret;
 }
 
@@ -444,6 +448,19 @@ Asg2Json::operator()(FunctionDecl* obj)
   ret["inner"] = std::move(inner);
 
   return ret;
+}
+
+json::Object
+Asg2Json::operator()(Obj::Ptr<Expr, InitList> obj)
+{
+  if (auto p = obj.dcast<Expr>())
+    return self(p);
+
+  if (auto p = obj.dcast<InitList>()) {
+
+  }
+
+  assert(false);
 }
 
 }

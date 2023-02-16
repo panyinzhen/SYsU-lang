@@ -38,7 +38,7 @@ public:
   template<typename T>
   T& rcast()
   {
-    return reinterpret_cast<T*>(this);
+    return *reinterpret_cast<T*>(this);
   }
 };
 
@@ -74,13 +74,13 @@ public:
   template<typename T, typename = std::enable_if_t<is_one_of<T, Ts...>::value>>
   T* dcast()
   {
-    return dynamic_cast<T>(this);
+    return dynamic_cast<T*>(_);
   }
 
   template<typename T, typename = std::enable_if_t<is_one_of<T, Ts...>::value>>
-  T* rcast()
+  T& rcast()
   {
-    return reinterpret_cast<T>(this);
+    return *reinterpret_cast<T>(_);
   }
 };
 

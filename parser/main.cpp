@@ -26,7 +26,7 @@ main(int argc, char* argv[])
 
   CParser parser(&tokens);
   auto ast = parser.compilationUnit();
-  std::cout << ast->toStringTree(true) << std::endl;
+  // std::cout << ast->toStringTree(true) << std::endl;
 
   asg::Ast2Asg ast2asg;
   auto asg = ast2asg(ast->translationUnit());

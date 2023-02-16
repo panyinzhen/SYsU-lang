@@ -5,10 +5,17 @@
         {
           "inner": [
             {
-              "inner": [{ "kind": "IntegerLiteral", "value": "3" }],
-              "kind": "ReturnStmt"
+              "inner": [{ "kind": "VarDecl", "name": "a" }],
+              "kind": "DeclStmt"
             },
-            { "kind": "NullStmt" }
+            {
+              "inner": [{ "kind": "VarDecl", "name": "b" }],
+              "kind": "DeclStmt"
+            },
+            {
+              "inner": [{ "kind": "IntegerLiteral", "value": "0" }],
+              "kind": "ReturnStmt"
+            }
           ],
           "kind": "CompoundStmt"
         }

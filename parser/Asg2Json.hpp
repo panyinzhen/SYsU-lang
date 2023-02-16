@@ -83,6 +83,8 @@ private:
   json::Object operator()(VarDecl* obj);
 
   json::Object operator()(FunctionDecl* obj);
+
+  json::Object operator()(Obj::Ptr<Expr, InitList> obj);
 };
 
 }
