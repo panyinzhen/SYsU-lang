@@ -567,9 +567,10 @@ Ast2Asg::operator()(ast::PostfixExpressionContext* ctx)
 
   int i = 1;
   while (i < children.size()) {
-    switch (dynamic_cast<antlr4::tree::TerminalNode*>(children[i])
-              ->getSymbol()
-              ->getType()) {
+    auto token = dynamic_cast<antlr4::tree::TerminalNode*>(children[i])
+                   ->getSymbol()
+                   ->getType();
+    switch (token) {
       case ast::LeftBracket: {
         auto& ret = make<BinaryExpr>();
         ret.op = ret.kIndex;
@@ -584,7 +585,7 @@ Ast2Asg::operator()(ast::PostfixExpressionContext* ctx)
         ret.head = sub;
         while (auto p = dynamic_cast<ast::ExpressionContext*>(children[++i]))
           ret.args.push_back(self(p));
-        ++i;
+        i += 2;
         sub = &ret;
       } break;
 
