@@ -974,6 +974,8 @@ Ast2Asg::operator()(ast::InitializerListContext* ctx)
       assert(false);
 
     ret.list.push_back(elem);
+
+    i += 2; // ','
   }
 
   return &ret;

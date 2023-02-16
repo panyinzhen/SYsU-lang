@@ -9,7 +9,7 @@
       "request": "launch",
       "name": "sysu-parser",
       "program": "/root/sysu/build/parser/sysu-parser",
-      "args": ["/root/SYsU-lang/tester/functional/001_var_defn.sysu.c"],
+      "args": ["/root/SYsU-lang/tester/functional/007_arr_defn4.sysu.c"],
       "cwd": "/root/sysu/build/parser/"
     }
   ]
