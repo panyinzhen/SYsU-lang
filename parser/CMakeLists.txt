@@ -20,8 +20,8 @@ find_package(antlr4-runtime REQUIRED)
 find_package(LLVM REQUIRED)
 llvm_map_components_to_libnames(LLVM_LIBS support)
 
-add_executable(sysu-parser
-  main.cpp asg.hpp asg.cpp
+add_executable(sysu-parser main.cpp
+  asg.hpp asg.cpp Ast2Asg.hpp Ast2Asg.cpp
   ${ANTLR4_SRC_FILES_antlr_c}
 )
 
