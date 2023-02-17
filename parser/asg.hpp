@@ -134,7 +134,8 @@ struct TypeExpr : public Obj
 
 struct ArrayType : public TypeExpr
 {
-  Expr* len{ nullptr };
+  int len{ 0 }; /// 如果 lexp 不为空，则忽略 len 中的值
+  Expr* lexp{ nullptr };
 };
 
 struct FunctionType : public TypeExpr
@@ -345,6 +346,8 @@ public:
 
   Expr* operator()(CallExpr* obj);
 
+  void operator()(InitListExpr* obj, const Type& to);
+
   //============================================================================
   // 语句
   //============================================================================
@@ -378,8 +381,6 @@ public:
   void operator()(VarDecl* obj);
 
   void operator()(FunctionDecl* obj);
-
-  void operator()(InitListExpr* obj);
 
 private:
   std::unordered_set<Obj*> _walked;

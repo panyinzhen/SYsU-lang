@@ -159,7 +159,7 @@ Ast2Asg::operator()(ast::DirectDeclaratorContext* ctx)
   if (auto p = ctx->assignmentExpression()) {
     auto& ret = make<ArrayType>();
     ret.sub = sub;
-    ret.len = self(p);
+    ret.lexp = self(p);
     return { &ret, std::move(name) };
   }
 
@@ -191,7 +191,7 @@ Ast2Asg::operator()(ast::DirectAbstractDeclaratorContext* ctx)
   if (ctx->LeftBracket()) {
     auto& arrayType = make<ArrayType>();
     if (auto p = ctx->assignmentExpression())
-      arrayType.len = self(p);
+      arrayType.lexp = self(p);
     ret = &arrayType;
   }
 

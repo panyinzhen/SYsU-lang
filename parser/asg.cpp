@@ -68,18 +68,18 @@ TypeInfer::operator()(StringLiteral* obj)
       typeid(*obj->type.texp) != typeid(ArrayType)) {
     auto& t = make<ArrayType>();
     t.sub = nullptr;
-    t.len = nullptr;
+    t.lexp = nullptr;
     obj->type.texp = &t;
   }
 
   auto texp = reinterpret_cast<ArrayType*>(obj->type.texp);
-  if (texp->len == nullptr || typeid(*texp->len) != typeid(IntegerLiteral)) {
+  if (texp->lexp == nullptr || typeid(*texp->lexp) != typeid(IntegerLiteral)) {
     auto& t = make<IntegerLiteral>();
-    texp->len = &t;
+    texp->lexp = &t;
   }
 
-  auto len = reinterpret_cast<IntegerLiteral*>(texp->len);
-  len->val = obj->val.size() + 1;
+  auto lexp = reinterpret_cast<IntegerLiteral*>(texp->lexp);
+  lexp->val = obj->val.size() + 1;
 
   return obj;
 }
@@ -285,6 +285,13 @@ TypeInfer::operator()(CallExpr* obj)
   return obj;
 }
 
+void
+TypeInfer::operator()(InitListExpr* obj, const Type& to)
+{
+  obj->type = to;
+  // TODO
+}
+
 //==============================================================================
 // 语句
 //==============================================================================
@@ -443,21 +450,46 @@ TypeInfer::operator()(VarDecl* obj)
       abort();
   }
 
-  if (obj->type.texp->sub && !dynamic_cast<ArrayType*>(obj->type.texp->sub))
-    abort();
+  // 最多只能声明数值类型
+  if (obj->type.texp->sub) {
+    auto arrType = obj->type.texp->sub->dcast<ArrayType>();
+    if (arrType == nullptr)
+      abort();
+    
+    // TODO arrType 长度编译期求值
+  }
 
   if (obj->init) {
+    if (auto p = obj->init->dcast<InitListExpr>())
+      self(p, obj->type);
+    else
+      obj->init = assigment_cast(obj->type, obj->init);
   }
 }
 
 void
 TypeInfer::operator()(FunctionDecl* obj)
 {
-}
+  obj->type.cate = Type::kINVALID;
 
-void
-TypeInfer::operator()(InitListExpr* obj)
-{
+  switch (obj->type.specs.base) {
+    case Type::Specs::kVoid:
+    case Type::Specs::kChar:
+    case Type::Specs::kInt:
+    case Type::Specs::kLong:
+    case Type::Specs::kLongLong:
+      break;
+
+    default:
+      abort();
+  }
+
+  // 必须为函数类型
+  if (!obj->type.texp->sub || !obj->type.texp->sub->dcast<FunctionType>())
+    abort();
+
+  for (auto&& i : obj->params)
+    self(i);
 }
 
 //==============================================================================
@@ -612,4 +644,5 @@ TypeInfer::assigment_cast(const Type& lft, Expr* rht)
 
   return rht;
 }
+
 }
