@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 namespace asg {
@@ -98,8 +99,8 @@ struct Type
   enum Category
   {
     kINVALID,
-    kPrvalue,
-    kLalue,
+    kRValue,
+    kLValue,
   } cate{ kINVALID };
 
   struct Specs
@@ -123,17 +124,17 @@ struct Type
     }
   } specs;
 
-  TypeExpr* texp;
+  TypeExpr* texp{ nullptr };
 };
 
 struct TypeExpr : public Obj
 {
-  TypeExpr* sub;
+  TypeExpr* sub{ nullptr };
 };
 
 struct ArrayType : public TypeExpr
 {
-  Expr* len;
+  Expr* len{ nullptr };
 };
 
 struct FunctionType : public TypeExpr
@@ -164,7 +165,7 @@ struct StringLiteral : public Expr
 
 struct DeclRefExpr : public Expr
 {
-  Decl* decl;
+  Decl* decl{ nullptr };
 };
 
 struct UnaryExpr : public Expr
@@ -177,7 +178,7 @@ struct UnaryExpr : public Expr
   };
 
   Op op;
-  Expr* sub;
+  Expr* sub{ nullptr };
 };
 
 struct BinaryExpr : public Expr
@@ -203,18 +204,26 @@ struct BinaryExpr : public Expr
   };
 
   Op op;
-  Expr *lft, *rht;
+  Expr *lft{ nullptr }, *rht{ nullptr };
 };
 
 struct CallExpr : public Expr
 {
-  Expr* head;
+  Expr* head{ nullptr };
   std::vector<Expr*> args;
 };
 
 struct ImplicitCastExpr : public Expr
 {
-  Expr* sub;
+  enum
+  {
+    kINVALID,
+    kLValueToRValue,
+    kIntegralCast,
+    kArrayToPointerDecay,
+    kFunctionToPointerDecay,
+  } kind{ kINVALID };
+  Expr* sub{ nullptr };
 };
 
 //==============================================================================
@@ -231,7 +240,7 @@ struct DeclStmt : public Stmt
 
 struct ExprStmt : public Stmt
 {
-  Expr* expr;
+  Expr* expr{ nullptr };
 };
 
 struct CompoundStmt : public Stmt
@@ -241,35 +250,35 @@ struct CompoundStmt : public Stmt
 
 struct IfStmt : public Stmt
 {
-  Expr* cond;
-  Stmt *then, *else_;
+  Expr* cond{ nullptr };
+  Stmt *then{ nullptr }, *else_{ nullptr };
 };
 
 struct WhileStmt : public Stmt
 {
-  Expr* cond;
-  Stmt* body;
+  Expr* cond{ nullptr };
+  Stmt* body{ nullptr };
 };
 
 struct DoStmt : public Stmt
 {
-  Stmt* body;
-  Expr* cond;
+  Stmt* body{ nullptr };
+  Expr* cond{ nullptr };
 };
 
 struct BreakStmt : public Stmt
 {
-  Stmt* loop;
+  Stmt* loop{ nullptr };
 };
 
 struct ContinueStmt : public Stmt
 {
-  Stmt* loop;
+  Stmt* loop{ nullptr };
 };
 
 struct ReturnStmt : public Stmt
 {
-  Expr* expr;
+  Expr* expr{ nullptr };
 };
 
 //==============================================================================
@@ -295,7 +304,7 @@ struct VarDecl : public Decl
 struct FunctionDecl : public Decl
 {
   std::vector<VarDecl*> params;
-  CompoundStmt* body;
+  CompoundStmt* body{ nullptr };
 };
 
 using TranslationUnit = std::vector<Decl*>;
@@ -370,11 +379,41 @@ public:
   void operator()(Obj::Ptr<Expr, InitList> obj);
 
 private:
+  std::unordered_set<Obj*> _walked;
+
+private:
+  struct WalkedGuard
+  {
+    TypeInfer& _;
+    Obj* _obj;
+
+    WalkedGuard(TypeInfer& _, Obj* obj)
+      : _(_)
+      , _obj(obj)
+    {
+      if (_._walked.find(obj) != _._walked.end())
+        abort();
+      _._walked.insert(obj);
+    }
+
+    ~WalkedGuard() { _._walked.erase(_obj); }
+  };
+
+private:
   template<typename T, typename... Args>
   T& make(Args... args)
   {
     return _mgr.make<T>(args...);
   }
+
+private:
+  Expr* ensure_rvalue(Expr* exp);
+
+  // 整数提升：https://zh.cppreference.com/w/c/language/conversion#%E6%95%B4%E6%95%B0%E6%8F%90%E5%8D%87
+  Expr* promote_integer(Expr* exp, int to = Type::Specs::kInt);
+
+  // 转换 rht 到 lft
+  Expr* assigment_cast(Expr* lft, Expr* rht);
 };
 
 }
