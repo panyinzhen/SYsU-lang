@@ -603,6 +603,24 @@ Ast2Asg::operator()(ast::PrimaryExpressionContext* ctx)
   abort();
 }
 
+Expr*
+Ast2Asg::operator()(ast::InitializerContext* ctx)
+{
+  if (auto p = ctx->assignmentExpression())
+    return self(p);
+
+  if (auto p = ctx->initializerList()) {
+    auto& ret = make<InitListExpr>();
+
+    for (auto&& i : p->initializer())
+      ret.list.push_back(self(i));
+
+    return &ret;
+  }
+
+  abort();
+}
+
 //==============================================================================
 // 语句
 //==============================================================================
@@ -732,6 +750,7 @@ Ast2Asg::operator()(ast::JumpStatementContext* ctx)
 
   if (ctx->Return()) {
     auto& ret = make<ReturnStmt>();
+    ret.func = _currentFunc;
     if (auto p = ctx->expression())
       ret.expr = self(p);
     return &ret;
@@ -764,6 +783,8 @@ FunctionDecl*
 Ast2Asg::operator()(ast::FunctionDefinitionContext* ctx)
 {
   auto& ret = make<FunctionDecl>();
+  _currentFunc = &ret;
+
   ret.type.specs = self(ctx->declarationSpecifiers());
 
   auto [texp, name] = self(ctx->directDeclarator());
@@ -837,29 +858,6 @@ Ast2Asg::operator()(ast::ParameterDeclarationContext* ctx)
 
   else
     abort();
-
-  return &ret;
-}
-
-Obj::Ptr<Expr, InitList>
-Ast2Asg::operator()(ast::InitializerContext* ctx)
-{
-  if (auto p = ctx->assignmentExpression())
-    return self(p);
-
-  if (auto p = ctx->initializerList())
-    return self(p);
-
-  abort();
-}
-
-InitList*
-Ast2Asg::operator()(ast::InitializerListContext* ctx)
-{
-  auto& ret = make<InitList>();
-
-  for (auto&& i : ctx->initializer())
-    ret.list.push_back(self(i));
 
   return &ret;
 }

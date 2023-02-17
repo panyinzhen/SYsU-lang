@@ -47,6 +47,9 @@ Asg2Json::operator()(Expr* obj)
   if (auto p = obj->dcast<CallExpr>())
     return self(p);
 
+  if (auto p = obj->dcast<InitListExpr>())
+    return self(p);
+
   abort();
 }
 
@@ -219,6 +222,22 @@ Asg2Json::operator()(CallExpr* obj)
   json::Array inner;
   inner.push_back(self(obj->head));
   for (auto&& i : obj->args)
+    inner.push_back(self(i));
+  ret["inner"] = std::move(inner);
+
+  return ret;
+}
+
+json::Object
+Asg2Json::operator()(InitListExpr* obj)
+{
+  json::Object ret;
+  WalkedGuard guard(self, obj);
+
+  ret["kind"] = "InitListExpr";
+
+  json::Array inner;
+  for (auto&& i : obj->list)
     inner.push_back(self(i));
   ret["inner"] = std::move(inner);
 
@@ -449,28 +468,6 @@ Asg2Json::operator()(FunctionDecl* obj)
   ret["inner"] = std::move(inner);
 
   return ret;
-}
-
-json::Object
-Asg2Json::operator()(Obj::Ptr<Expr, InitList> obj)
-{
-  if (auto p = obj.dcast<Expr>())
-    return self(p);
-
-  if (auto p = obj.dcast<InitList>()) {
-    json::Object ret;
-
-    ret["kind"] = "InitListExpr";
-
-    json::Array inner;
-    for (auto&& i : p->list)
-      inner.push_back(self(i));
-    ret["inner"] = std::move(inner);
-
-    return ret;
-  }
-
-  abort();
 }
 
 }

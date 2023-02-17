@@ -53,6 +53,8 @@ private:
 
   Stmt* _currentLoop{ nullptr };
 
+  FunctionDecl* _currentFunc{ nullptr };
+
 private:
   //============================================================================
   // 类型
@@ -97,6 +99,8 @@ private:
 
   Expr* operator()(ast::PrimaryExpressionContext* ctx);
 
+  Expr* operator()(ast::InitializerContext* ctx);
+
   //============================================================================
   // 语句
   //============================================================================
@@ -124,10 +128,6 @@ private:
   VarDecl* operator()(ast::InitDeclaratorContext* ctx, Type::Specs specs);
 
   VarDecl* operator()(ast::ParameterDeclarationContext* ctx);
-
-  Obj::Ptr<Expr, InitList> operator()(ast::InitializerContext* ctx);
-
-  InitList* operator()(ast::InitializerListContext* ctx);
 
 private:
   template<typename T, typename... Args>

@@ -199,7 +199,7 @@ TypeInfer::operator()(BinaryExpr* obj)
     } break;
 
     case BinaryExpr::kAssign: {
-      rht = assigment_cast(lft, rht);
+      rht = assigment_cast(lft->type, rht);
 
       obj->lft = lft;
       obj->rht = rht;
@@ -259,7 +259,30 @@ TypeInfer::operator()(BinaryExpr* obj)
 Expr*
 TypeInfer::operator()(CallExpr* obj)
 {
-  // TODO
+  assert(obj->head);
+
+  auto fexp = dynamic_cast<FunctionType*>(obj->head->type.texp);
+  if (fexp == nullptr)
+    abort();
+
+  auto& f2p = make<ImplicitCastExpr>();
+  f2p.kind = f2p.kFunctionToPointerDecay;
+  f2p.type = obj->head->type;
+  f2p.sub = obj->head;
+  obj->head = &f2p;
+
+  if (fexp->params.size() != obj->args.size())
+    abort();
+
+  for (int i = fexp->params.size(); --i != -1;)
+    obj->args[i] = assigment_cast(fexp->params[i], obj->args[i]);
+
+  obj->type.cate = Type::kRValue;
+  obj->type.specs.isConst = 0;
+  obj->type.specs.base = obj->head->type.specs.base;
+  obj->type.texp = fexp->sub;
+
+  return obj;
 }
 
 //==============================================================================
@@ -305,31 +328,44 @@ TypeInfer::operator()(Stmt* obj)
 void
 TypeInfer::operator()(DeclStmt* obj)
 {
+  for (auto&& i : obj->decls)
+    self(i);
 }
 
 void
 TypeInfer::operator()(ExprStmt* obj)
 {
+  obj->expr = self(obj->expr);
 }
 
 void
 TypeInfer::operator()(CompoundStmt* obj)
 {
+  for (auto&& i : obj->subs)
+    self(i);
 }
 
 void
 TypeInfer::operator()(IfStmt* obj)
 {
+  obj->cond = ensure_rvalue(self(obj->cond));
+  self(obj->then);
+  if (obj->else_)
+    self(obj->else_);
 }
 
 void
 TypeInfer::operator()(WhileStmt* obj)
 {
+  obj->cond = ensure_rvalue(self(obj->cond));
+  self(obj->body);
 }
 
 void
 TypeInfer::operator()(DoStmt* obj)
 {
+  obj->cond = ensure_rvalue(self(obj->cond));
+  self(obj->body);
 }
 
 void
@@ -345,6 +381,34 @@ TypeInfer::operator()(ContinueStmt* obj)
 void
 TypeInfer::operator()(ReturnStmt* obj)
 {
+  auto& ftype = obj->func->type;
+  auto ftexp = dynamic_cast<FunctionType*>(ftype.texp);
+  if (ftexp == nullptr || ftexp->sub != nullptr)
+    abort();
+
+  switch (ftype.specs.base) {
+    case Type::Specs::kVoid: {
+      if (obj->expr != nullptr)
+        abort();
+    } break;
+
+    case Type::Specs::kChar:
+    case Type::Specs::kInt:
+    case Type::Specs::kLong:
+    case Type::Specs::kLongLong: {
+      if (obj->expr == nullptr)
+        abort();
+
+      Type retType;
+      retType.cate = Type::kLValue;
+      retType.specs = ftype.specs;
+      retType.texp = ftexp->sub;
+      obj->expr = assigment_cast(retType, ensure_rvalue(self(obj->expr)));
+    } break;
+
+    default:
+      abort();
+  }
 }
 
 //==============================================================================
@@ -366,6 +430,24 @@ TypeInfer::operator()(Decl* obj)
 void
 TypeInfer::operator()(VarDecl* obj)
 {
+  obj->type.cate = Type::kLValue;
+
+  switch (obj->type.specs.base) {
+    case Type::Specs::kChar:
+    case Type::Specs::kInt:
+    case Type::Specs::kLong:
+    case Type::Specs::kLongLong:
+      break;
+
+    default:
+      abort();
+  }
+
+  if (obj->type.texp->sub && !dynamic_cast<ArrayType*>(obj->type.texp->sub))
+    abort();
+
+  if (obj->init) {
+  }
 }
 
 void
@@ -374,7 +456,7 @@ TypeInfer::operator()(FunctionDecl* obj)
 }
 
 void
-TypeInfer::operator()(Obj::Ptr<Expr, InitList> obj)
+TypeInfer::operator()(InitListExpr* obj)
 {
 }
 
@@ -409,7 +491,7 @@ TypeInfer::ensure_rvalue(Expr* exp)
 }
 
 Expr*
-TypeInfer::promote_integer(Expr* exp, int to = Type::Specs::kInt)
+TypeInfer::promote_integer(Expr* exp, int to)
 {
   if (exp->type.texp != nullptr)
     abort();
@@ -484,12 +566,12 @@ type_equal(const Type& a, const Type& b)
 }
 
 Expr*
-TypeInfer::assigment_cast(Expr* lft, Expr* rht)
+TypeInfer::assigment_cast(const Type& lft, Expr* rht)
 {
-  if (lft->type.cate != Type::kLValue || lft->type.specs.isConst)
+  if (lft.cate != Type::kLValue || lft.specs.isConst)
     abort();
 
-  switch (lft->type.specs.base) {
+  switch (lft.specs.base) {
     case Type::Specs::kChar:
     case Type::Specs::kInt:
     case Type::Specs::kLong:
@@ -512,23 +594,22 @@ TypeInfer::assigment_cast(Expr* lft, Expr* rht)
 
   rht = ensure_rvalue(rht);
 
-  if (lft->type.texp != nullptr) {
-    if (!lft->type.texp->dcast<ArrayType>())
+  if (lft.texp != nullptr) {
+    if (!lft.texp->dcast<ArrayType>())
       abort();
 
-    if (!type_equal(lft->type, rht->type))
+    if (!type_equal(lft, rht->type))
       abort();
   }
 
-  else if (rht->type.specs.base != lft->type.specs.base) {
+  else if (rht->type.specs.base != lft.specs.base) {
     auto& cst = make<ImplicitCastExpr>();
     cst.kind = cst.kIntegralCast;
     cst.sub = rht;
-    cst.type = lft->type;
+    cst.type = lft;
     rht = &cst;
   }
 
   return rht;
 }
-
 }

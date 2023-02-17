@@ -213,6 +213,11 @@ struct CallExpr : public Expr
   std::vector<Expr*> args;
 };
 
+struct InitListExpr : public Expr
+{
+  std::vector<Expr*> list;
+};
+
 struct ImplicitCastExpr : public Expr
 {
   enum
@@ -229,6 +234,8 @@ struct ImplicitCastExpr : public Expr
 //==============================================================================
 // 语句
 //==============================================================================
+
+struct FunctionDecl;
 
 struct Stmt : public Obj
 {};
@@ -278,6 +285,7 @@ struct ContinueStmt : public Stmt
 
 struct ReturnStmt : public Stmt
 {
+  FunctionDecl* func{ nullptr };
   Expr* expr{ nullptr };
 };
 
@@ -291,14 +299,9 @@ struct Decl : public Obj
   std::string name;
 };
 
-struct InitList : public Obj
-{
-  std::vector<Obj::Ptr<Expr, InitList>> list;
-};
-
 struct VarDecl : public Decl
 {
-  Obj::Ptr<Expr, InitList> init;
+  Expr* init;
 };
 
 struct FunctionDecl : public Decl
@@ -376,7 +379,7 @@ public:
 
   void operator()(FunctionDecl* obj);
 
-  void operator()(Obj::Ptr<Expr, InitList> obj);
+  void operator()(InitListExpr* obj);
 
 private:
   std::unordered_set<Obj*> _walked;
@@ -413,7 +416,7 @@ private:
   Expr* promote_integer(Expr* exp, int to = Type::Specs::kInt);
 
   // 转换 rht 到 lft
-  Expr* assigment_cast(Expr* lft, Expr* rht);
+  Expr* assigment_cast(const Type& lft, Expr* rht);
 };
 
 }

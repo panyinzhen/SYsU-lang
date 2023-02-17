@@ -50,6 +50,8 @@ private:
 
   json::Object operator()(CallExpr* obj);
 
+  json::Object operator()(InitListExpr* obj);
+
   //============================================================================
   // 语句
   //============================================================================
@@ -83,8 +85,6 @@ private:
   json::Object operator()(VarDecl* obj);
 
   json::Object operator()(FunctionDecl* obj);
-
-  json::Object operator()(Obj::Ptr<Expr, InitList> obj);
 };
 
 }
