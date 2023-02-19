@@ -145,6 +145,108 @@ Ast2Asg::operator()(ast::DeclaratorContext* ctx)
   return self(ctx->directDeclarator());
 }
 
+static int
+eval_arrlen(Expr* expr)
+{
+  if (auto p = expr->dcast<IntegerLiteral>())
+    return p->val;
+
+  if (auto p = expr->dcast<DeclRefExpr>()) {
+    if (p->decl == nullptr)
+      abort();
+
+    auto var = p->decl->dcast<VarDecl>();
+    if (!var || !var->type.specs.isConst)
+      abort();
+
+    switch (var->type.specs.base) {
+      case Type::Specs::kChar:
+      case Type::Specs::kInt:
+      case Type::Specs::kLong:
+      case Type::Specs::kLongLong:
+        return eval_arrlen(var->init);
+
+      default:
+        abort();
+    }
+  }
+
+  if (auto p = expr->dcast<UnaryExpr>()) {
+    auto sub = eval_arrlen(p->sub);
+
+    switch (p->op) {
+      case UnaryExpr::kPos:
+        return sub;
+
+      case UnaryExpr::kNeg:
+        return -sub;
+
+      case UnaryExpr::kNot:
+        return !sub;
+
+      default:
+        abort();
+    }
+  }
+
+  if (auto p = expr->dcast<BinaryExpr>()) {
+    auto lft = eval_arrlen(p->lft);
+    auto rht = eval_arrlen(p->rht);
+
+    switch (p->op) {
+      case BinaryExpr::kMul:
+        return lft * rht;
+
+      case BinaryExpr::kDiv:
+        return lft / rht;
+
+      case BinaryExpr::kMod:
+        return lft % rht;
+
+      case BinaryExpr::kAdd:
+        return lft + rht;
+
+      case BinaryExpr::kSub:
+        return lft - rht;
+
+      case BinaryExpr::kGt:
+        return lft > rht;
+
+      case BinaryExpr::kLt:
+        return lft < rht;
+
+      case BinaryExpr::kGe:
+        return lft >= rht;
+
+      case BinaryExpr::kLe:
+        return lft <= rht;
+
+      case BinaryExpr::kEq:
+        return lft == rht;
+
+      case BinaryExpr::kNe:
+        return lft != rht;
+
+      case BinaryExpr::kAnd:
+        return lft && rht;
+
+      case BinaryExpr::kOr:
+        return lft || rht;
+
+      default:
+        abort();
+    }
+  }
+
+  if (auto p = expr->dcast<InitListExpr>()) {
+    if (p->list.empty())
+      return 0;
+    return eval_arrlen(p->list[0]);
+  }
+
+  abort();
+}
+
 std::pair<TypeExpr*, std::string>
 Ast2Asg::operator()(ast::DirectDeclaratorContext* ctx)
 {
@@ -156,22 +258,31 @@ Ast2Asg::operator()(ast::DirectDeclaratorContext* ctx)
 
   auto [sub, name] = self(ctx->directDeclarator());
 
-  if (auto p = ctx->assignmentExpression()) {
+  if (ctx->LeftBracket()) {
     auto& ret = make<ArrayType>();
     ret.sub = sub;
-    ret.lexp = self(p);
+
+    if (auto p = ctx->assignmentExpression())
+      ret.len = eval_arrlen(self(p));
+    else
+      ret.len = -1;
+
     return { &ret, std::move(name) };
   }
 
-  if (auto p = ctx->parameterTypeList()) {
+  if (ctx->LeftParen()) {
     auto& ret = make<FunctionType>();
     ret.sub = sub;
-    for (auto&& i : p->parameterList()->parameterDeclaration())
-      ret.params.push_back(self(i)->type);
+
+    if (auto p = ctx->parameterTypeList()) {
+      for (auto&& i : p->parameterList()->parameterDeclaration())
+        ret.params.push_back(self(i)->type);
+    }
+
     return { &ret, std::move(name) };
   }
 
-  return { sub, std::move(name) };
+  abort();
 }
 
 TypeExpr*
@@ -191,7 +302,9 @@ Ast2Asg::operator()(ast::DirectAbstractDeclaratorContext* ctx)
   if (ctx->LeftBracket()) {
     auto& arrayType = make<ArrayType>();
     if (auto p = ctx->assignmentExpression())
-      arrayType.lexp = self(p);
+      arrayType.len = eval_arrlen(self(p));
+    else
+      arrayType.len = -1;
     ret = &arrayType;
   }
 

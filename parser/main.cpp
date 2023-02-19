@@ -31,6 +31,9 @@ main(int argc, char* argv[])
   asg::Ast2Asg ast2asg;
   auto asg = ast2asg(ast->translationUnit());
 
+  asg::InferType inferType;
+  inferType(asg);
+
   asg::Asg2Json asg2json;
   llvm::json::Value json = asg2json(asg);
   llvm::outs() << json << '\n';

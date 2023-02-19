@@ -134,8 +134,7 @@ struct TypeExpr : public Obj
 
 struct ArrayType : public TypeExpr
 {
-  int len{ 0 }; /// 如果 lexp 不为空，则忽略 len 中的值
-  Expr* lexp{ nullptr };
+  int len{ 0 }; /// 如果 len 为 -1 则表示不确定长度
 };
 
 struct FunctionType : public TypeExpr
@@ -218,6 +217,9 @@ struct InitListExpr : public Expr
 {
   std::vector<Expr*> list;
 };
+
+struct ImplicitInitExpr : public Expr
+{};
 
 struct ImplicitCastExpr : public Expr
 {
@@ -320,7 +322,7 @@ using TranslationUnit = std::vector<Decl*>;
 /**
  * @brief 在抽象语法图上自动推导并补全类型
  */
-class TypeInfer
+class InferType
 {
 public:
   Obj::Mgr _mgr;
@@ -345,8 +347,6 @@ public:
   Expr* operator()(BinaryExpr* obj);
 
   Expr* operator()(CallExpr* obj);
-
-  void operator()(InitListExpr* obj, const Type& to);
 
   //============================================================================
   // 语句
@@ -388,10 +388,10 @@ private:
 private:
   struct WalkedGuard
   {
-    TypeInfer& _;
+    InferType& _;
     Obj* _obj;
 
-    WalkedGuard(TypeInfer& _, Obj* obj)
+    WalkedGuard(InferType& _, Obj* obj)
       : _(_)
       , _obj(obj)
     {
@@ -418,6 +418,9 @@ private:
 
   // 转换 rht 到 lft
   Expr* assigment_cast(const Type& lft, Expr* rht);
+
+  // 推断初始化表达式的类型
+  Expr* infer_init(Expr* init, const Type& to);
 };
 
 }

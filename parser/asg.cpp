@@ -6,7 +6,7 @@
 namespace asg {
 
 void
-TypeInfer::operator()(TranslationUnit& tu)
+InferType::operator()(TranslationUnit& tu)
 {
   for (auto&& i : tu)
     self(i);
@@ -17,7 +17,7 @@ TypeInfer::operator()(TranslationUnit& tu)
 //==============================================================================
 
 Expr*
-TypeInfer::operator()(Expr* obj)
+InferType::operator()(Expr* obj)
 {
   if (auto p = obj->dcast<IntegerLiteral>())
     return self(p);
@@ -47,7 +47,7 @@ TypeInfer::operator()(Expr* obj)
 }
 
 Expr*
-TypeInfer::operator()(IntegerLiteral* obj)
+InferType::operator()(IntegerLiteral* obj)
 {
   obj->type.cate = Type::kRValue;
   // obj->type.specs.isConst = 1;
@@ -58,7 +58,7 @@ TypeInfer::operator()(IntegerLiteral* obj)
 }
 
 Expr*
-TypeInfer::operator()(StringLiteral* obj)
+InferType::operator()(StringLiteral* obj)
 {
   obj->type.cate = Type::kRValue;
   // obj->type.specs.isConst = 1;
@@ -67,25 +67,18 @@ TypeInfer::operator()(StringLiteral* obj)
   if (obj->type.texp == nullptr ||
       typeid(*obj->type.texp) != typeid(ArrayType)) {
     auto& t = make<ArrayType>();
-    t.sub = nullptr;
-    t.lexp = nullptr;
     obj->type.texp = &t;
   }
 
-  auto texp = reinterpret_cast<ArrayType*>(obj->type.texp);
-  if (texp->lexp == nullptr || typeid(*texp->lexp) != typeid(IntegerLiteral)) {
-    auto& t = make<IntegerLiteral>();
-    texp->lexp = &t;
-  }
-
-  auto lexp = reinterpret_cast<IntegerLiteral*>(texp->lexp);
-  lexp->val = obj->val.size() + 1;
+  auto& arrType = obj->type.texp->rcast<ArrayType>();
+  arrType.sub = nullptr;
+  arrType.len = obj->val.size() + 1;
 
   return obj;
 }
 
 Expr*
-TypeInfer::operator()(DeclRefExpr* obj)
+InferType::operator()(DeclRefExpr* obj)
 {
   assert(obj->decl);
   WalkedGuard walked(self, obj);
@@ -99,7 +92,7 @@ TypeInfer::operator()(DeclRefExpr* obj)
 }
 
 Expr*
-TypeInfer::operator()(UnaryExpr* obj)
+InferType::operator()(UnaryExpr* obj)
 {
   assert(obj->sub);
   WalkedGuard walked(self, obj);
@@ -131,7 +124,7 @@ TypeInfer::operator()(UnaryExpr* obj)
 }
 
 Expr*
-TypeInfer::operator()(BinaryExpr* obj)
+InferType::operator()(BinaryExpr* obj)
 {
   assert(obj->lft && obj->rht);
   WalkedGuard walked(self, obj);
@@ -257,7 +250,7 @@ TypeInfer::operator()(BinaryExpr* obj)
 }
 
 Expr*
-TypeInfer::operator()(CallExpr* obj)
+InferType::operator()(CallExpr* obj)
 {
   assert(obj->head);
 
@@ -285,19 +278,12 @@ TypeInfer::operator()(CallExpr* obj)
   return obj;
 }
 
-void
-TypeInfer::operator()(InitListExpr* obj, const Type& to)
-{
-  obj->type = to;
-  // TODO
-}
-
 //==============================================================================
 // 语句
 //==============================================================================
 
 void
-TypeInfer::operator()(Stmt* obj)
+InferType::operator()(Stmt* obj)
 {
   if (auto p = obj->dcast<DeclStmt>())
     return self(p);
@@ -333,27 +319,27 @@ TypeInfer::operator()(Stmt* obj)
 }
 
 void
-TypeInfer::operator()(DeclStmt* obj)
+InferType::operator()(DeclStmt* obj)
 {
   for (auto&& i : obj->decls)
     self(i);
 }
 
 void
-TypeInfer::operator()(ExprStmt* obj)
+InferType::operator()(ExprStmt* obj)
 {
   obj->expr = self(obj->expr);
 }
 
 void
-TypeInfer::operator()(CompoundStmt* obj)
+InferType::operator()(CompoundStmt* obj)
 {
   for (auto&& i : obj->subs)
     self(i);
 }
 
 void
-TypeInfer::operator()(IfStmt* obj)
+InferType::operator()(IfStmt* obj)
 {
   obj->cond = ensure_rvalue(self(obj->cond));
   self(obj->then);
@@ -362,31 +348,31 @@ TypeInfer::operator()(IfStmt* obj)
 }
 
 void
-TypeInfer::operator()(WhileStmt* obj)
+InferType::operator()(WhileStmt* obj)
 {
   obj->cond = ensure_rvalue(self(obj->cond));
   self(obj->body);
 }
 
 void
-TypeInfer::operator()(DoStmt* obj)
+InferType::operator()(DoStmt* obj)
 {
   obj->cond = ensure_rvalue(self(obj->cond));
   self(obj->body);
 }
 
 void
-TypeInfer::operator()(BreakStmt* obj)
+InferType::operator()(BreakStmt* obj)
 {
 }
 
 void
-TypeInfer::operator()(ContinueStmt* obj)
+InferType::operator()(ContinueStmt* obj)
 {
 }
 
 void
-TypeInfer::operator()(ReturnStmt* obj)
+InferType::operator()(ReturnStmt* obj)
 {
   auto& ftype = obj->func->type;
   auto ftexp = dynamic_cast<FunctionType*>(ftype.texp);
@@ -423,7 +409,7 @@ TypeInfer::operator()(ReturnStmt* obj)
 //==============================================================================
 
 void
-TypeInfer::operator()(Decl* obj)
+InferType::operator()(Decl* obj)
 {
   if (auto p = obj->dcast<VarDecl>())
     return self(p);
@@ -435,7 +421,7 @@ TypeInfer::operator()(Decl* obj)
 }
 
 void
-TypeInfer::operator()(VarDecl* obj)
+InferType::operator()(VarDecl* obj)
 {
   obj->type.cate = Type::kLValue;
 
@@ -451,24 +437,12 @@ TypeInfer::operator()(VarDecl* obj)
   }
 
   // 最多只能声明数值类型
-  if (obj->type.texp->sub) {
-    auto arrType = obj->type.texp->sub->dcast<ArrayType>();
-    if (arrType == nullptr)
-      abort();
-    
-    // TODO arrType 长度编译期求值
-  }
-
-  if (obj->init) {
-    if (auto p = obj->init->dcast<InitListExpr>())
-      self(p, obj->type);
-    else
-      obj->init = assigment_cast(obj->type, obj->init);
-  }
+  if (obj->init)
+    obj->init = infer_init(obj->init, obj->type);
 }
 
 void
-TypeInfer::operator()(FunctionDecl* obj)
+InferType::operator()(FunctionDecl* obj)
 {
   obj->type.cate = Type::kINVALID;
 
@@ -497,7 +471,7 @@ TypeInfer::operator()(FunctionDecl* obj)
 //==============================================================================
 
 Expr*
-TypeInfer::ensure_rvalue(Expr* exp)
+InferType::ensure_rvalue(Expr* exp)
 {
   switch (exp->type.cate) {
     case Type::kLValue: {
@@ -523,7 +497,7 @@ TypeInfer::ensure_rvalue(Expr* exp)
 }
 
 Expr*
-TypeInfer::promote_integer(Expr* exp, int to)
+InferType::promote_integer(Expr* exp, int to)
 {
   if (exp->type.texp != nullptr)
     abort();
@@ -598,7 +572,7 @@ type_equal(const Type& a, const Type& b)
 }
 
 Expr*
-TypeInfer::assigment_cast(const Type& lft, Expr* rht)
+InferType::assigment_cast(const Type& lft, Expr* rht)
 {
   if (lft.cate != Type::kLValue || lft.specs.isConst)
     abort();
@@ -643,6 +617,57 @@ TypeInfer::assigment_cast(const Type& lft, Expr* rht)
   }
 
   return rht;
+}
+
+Expr*
+InferType::infer_init(Expr* init, const Type& to)
+{
+  if (to.texp == nullptr) {
+    if (auto p = init->dcast<ImplicitInitExpr>()) {
+      p->type = to;
+      return p;
+    }
+
+    if (auto p = init->dcast<InitListExpr>()) {
+      if (!p->list.empty())
+        return infer_init(p->list[0], to);
+
+      auto& ret = make<ImplicitInitExpr>();
+      ret.type = to;
+      return &ret;
+    }
+
+    return assigment_cast(to, init);
+  }
+
+  if (auto arrType = to.texp->dcast<ArrayType>()) {
+    if (auto p = init->dcast<ImplicitInitExpr>()) {
+      p->type = to;
+      return p;
+    }
+
+    auto initList = init->dcast<InitListExpr>();
+    if (initList == nullptr)
+      abort();
+
+    if (arrType->len == -1)
+      arrType->len = initList->list.size();
+    else if (initList->list.size() > arrType->len)
+      initList->list.resize(arrType->len);
+
+    Type subType;
+    subType.cate = to.cate;
+    subType.specs = to.specs;
+    subType.texp = arrType->sub;
+
+    for (int i = initList->list.size(); --i != -1;)
+      initList->list[i] = infer_init(initList->list[i], subType);
+
+    initList->type = to;
+    return initList;
+  }
+
+  abort();
 }
 
 }
