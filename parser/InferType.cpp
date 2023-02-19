@@ -1,4 +1,4 @@
-#include "asg.hpp"
+#include "InferType.hpp"
 #include <cassert>
 
 #define self (*this)
@@ -28,7 +28,7 @@ InferType::operator()(Expr* obj)
   if (auto p = obj->dcast<DeclRefExpr>())
     return self(p);
 
-  if (auto p = obj->dcast<DeclRefExpr>())
+  if (auto p = obj->dcast<ParenExpr>())
     return self(p);
 
   if (auto p = obj->dcast<UnaryExpr>())
@@ -43,7 +43,7 @@ InferType::operator()(Expr* obj)
   if (auto p = obj->dcast<ImplicitCastExpr>())
     return self(p->sub);
 
-  abort();
+  ASG_ABORT();
 }
 
 Expr*
@@ -83,11 +83,21 @@ InferType::operator()(DeclRefExpr* obj)
   assert(obj->decl);
   WalkedGuard walked(self, obj);
 
-  self(obj->decl);
+  // self(obj->decl);
   obj->type = obj->decl->type;
 
   obj->type.cate = Type::kLValue;
 
+  return obj;
+}
+
+Expr*
+InferType::operator()(ParenExpr* obj)
+{
+  if (!obj->sub)
+    ASG_ABORT();
+  obj->sub = self(obj->sub);
+  obj->type = obj->sub->type;
   return obj;
 }
 
@@ -103,6 +113,7 @@ InferType::operator()(UnaryExpr* obj)
   sub = ensure_rvalue(sub);
   sub = promote_integer(sub);
 
+  obj->sub = sub;
   obj->type = sub->type;
   obj->type.cate = Type::kRValue;
   obj->type.specs.isConst = 0;
@@ -117,7 +128,7 @@ InferType::operator()(UnaryExpr* obj)
       break;
 
     default:
-      abort();
+      ASG_ABORT();
   }
 
   return obj;
@@ -193,7 +204,7 @@ InferType::operator()(BinaryExpr* obj)
 
     case BinaryExpr::kAssign: {
       if (lft->type.specs.isConst)
-        abort();
+        ASG_ABORT();
       rht = assigment_cast(lft->type, rht);
 
       obj->lft = lft;
@@ -213,7 +224,7 @@ InferType::operator()(BinaryExpr* obj)
     case BinaryExpr::kIndex: {
       auto arrayType = lft->type.texp->dcast<ArrayType>();
       if (arrayType == nullptr)
-        abort();
+        ASG_ABORT();
 
       auto& a2p = make<ImplicitCastExpr>();
       a2p.kind = a2p.kArrayToPointerDecay;
@@ -224,7 +235,7 @@ InferType::operator()(BinaryExpr* obj)
       lft = &a2p;
 
       if (rht->type.texp != nullptr)
-        abort();
+        ASG_ABORT();
       switch (rht->type.specs.base) {
         case Type::Specs::kChar:
         case Type::Specs::kInt:
@@ -233,19 +244,19 @@ InferType::operator()(BinaryExpr* obj)
           break;
 
         default:
-          abort();
+          ASG_ABORT();
       }
       rht = ensure_rvalue(rht);
 
       obj->lft = lft;
       obj->rht = rht;
-      obj->type.cate = Type::kRValue;
+      obj->type.cate = Type::kLValue; // !
       obj->type.specs = lft->type.specs;
       obj->type.texp = arrayType->sub;
     } break;
 
     default:
-      abort();
+      ASG_ABORT();
   }
 
   return obj;
@@ -259,7 +270,7 @@ InferType::operator()(CallExpr* obj)
   obj->head = self(obj->head);
   auto fexp = dynamic_cast<FunctionType*>(obj->head->type.texp);
   if (fexp == nullptr)
-    abort();
+    ASG_ABORT();
 
   auto& f2p = make<ImplicitCastExpr>();
   f2p.kind = f2p.kFunctionToPointerDecay;
@@ -268,10 +279,10 @@ InferType::operator()(CallExpr* obj)
   obj->head = &f2p;
 
   if (fexp->params.size() != obj->args.size())
-    abort();
+    ASG_ABORT();
 
   for (int i = fexp->params.size(); --i != -1;)
-    obj->args[i] = assigment_cast(fexp->params[i], self(obj->args[i]));
+    obj->args[i] = assigment_cast(fexp->params[i]->type, self(obj->args[i]));
 
   obj->type.cate = Type::kRValue;
   obj->type.specs.isConst = 0;
@@ -318,7 +329,7 @@ InferType::operator()(Stmt* obj)
   if (typeid(*obj) == typeid(Stmt))
     return;
 
-  abort();
+  ASG_ABORT();
 }
 
 void
@@ -380,12 +391,12 @@ InferType::operator()(ReturnStmt* obj)
   auto& ftype = obj->func->type;
   auto ftexp = dynamic_cast<FunctionType*>(ftype.texp);
   if (ftexp == nullptr || ftexp->sub != nullptr)
-    abort();
+    ASG_ABORT();
 
   switch (ftype.specs.base) {
     case Type::Specs::kVoid: {
       if (obj->expr != nullptr)
-        abort();
+        ASG_ABORT();
     } break;
 
     case Type::Specs::kChar:
@@ -393,7 +404,7 @@ InferType::operator()(ReturnStmt* obj)
     case Type::Specs::kLong:
     case Type::Specs::kLongLong: {
       if (obj->expr == nullptr)
-        abort();
+        ASG_ABORT();
 
       Type retType;
       retType.cate = Type::kLValue;
@@ -403,7 +414,7 @@ InferType::operator()(ReturnStmt* obj)
     } break;
 
     default:
-      abort();
+      ASG_ABORT();
   }
 }
 
@@ -420,7 +431,7 @@ InferType::operator()(Decl* obj)
   if (auto p = obj->dcast<FunctionDecl>())
     return self(p);
 
-  abort();
+  ASG_ABORT();
 }
 
 void
@@ -436,7 +447,7 @@ InferType::operator()(VarDecl* obj)
       break;
 
     default:
-      abort();
+      ASG_ABORT();
   }
 
   // 最多只能声明数值类型
@@ -458,20 +469,20 @@ InferType::operator()(FunctionDecl* obj)
       break;
 
     default:
-      abort();
+      ASG_ABORT();
   }
 
   // 必须为函数类型
   if (obj->type.texp == nullptr)
-    abort();
+    ASG_ABORT();
   auto funcType = obj->type.texp->dcast<FunctionType>();
   if (funcType == nullptr)
-    abort();
+    ASG_ABORT();
 
   funcType->params.resize(obj->params.size());
   for (int i = obj->params.size(); --i != -1;) {
     self(obj->params[i]);
-    funcType->params[i] = obj->params[i]->type;
+    funcType->params[i] = obj->params[i];
   }
 
   if (obj->body) {
@@ -506,7 +517,7 @@ InferType::ensure_rvalue(Expr* exp)
     }
 
     default:
-      abort();
+      ASG_ABORT();
   }
 }
 
@@ -514,7 +525,7 @@ Expr*
 InferType::promote_integer(Expr* exp, int to)
 {
   if (exp->type.texp != nullptr)
-    abort();
+    ASG_ABORT();
 
   switch (exp->type.specs.base) {
     case Type::Specs::kChar:
@@ -536,7 +547,7 @@ InferType::promote_integer(Expr* exp, int to)
     }
 
     default:
-      abort();
+      ASG_ABORT();
   }
 }
 
@@ -568,13 +579,13 @@ typeexpr_equal(TypeExpr* a, TypeExpr* b)
       return false;
 
     for (int i = at->params.size(); --i != -1;) {
-      if (!type_equal(at->params[i], bt->params[i]))
+      if (!type_equal(at->params[i]->type, bt->params[i]->type))
         return false;
     }
     return true;
   }
 
-  abort();
+  ASG_ABORT();
 }
 
 static bool
@@ -589,7 +600,7 @@ Expr*
 InferType::assigment_cast(const Type& lft, Expr* rht)
 {
   if (lft.cate != Type::kLValue)
-    abort();
+    ASG_ABORT();
 
   switch (lft.specs.base) {
     case Type::Specs::kChar:
@@ -599,7 +610,7 @@ InferType::assigment_cast(const Type& lft, Expr* rht)
       break;
 
     default:
-      abort();
+      ASG_ABORT();
   }
   switch (rht->type.specs.base) {
     case Type::Specs::kChar:
@@ -609,17 +620,17 @@ InferType::assigment_cast(const Type& lft, Expr* rht)
       break;
 
     default:
-      abort();
+      ASG_ABORT();
   }
 
   rht = ensure_rvalue(rht);
 
   if (lft.texp != nullptr) {
     if (!lft.texp->dcast<ArrayType>())
-      abort();
+      ASG_ABORT();
 
     if (!type_equal(lft, rht->type))
-      abort();
+      ASG_ABORT();
   }
 
   else if (rht->type.specs.base != lft.specs.base) {
@@ -675,7 +686,7 @@ InferType::infer_init(Expr* init, const Type& to)
       auto p = init->type.texp->dcast<ArrayType>();
       if (!p || p->sub != nullptr ||
           init->type.specs.base != Type::Specs::kChar)
-        abort();
+        ASG_ABORT();
       if (arrType->len == -1)
         arrType->len = p->len;
       else
@@ -684,10 +695,10 @@ InferType::infer_init(Expr* init, const Type& to)
       return init;
     }
 
-    abort();
+    ASG_ABORT();
   }
 
-  abort();
+  ASG_ABORT();
 }
 
 std::pair<Expr*, std::size_t>
@@ -734,7 +745,7 @@ InferType::infer_initlist(const std::vector<Expr*>& list,
     return { &ret, begin };
   }
 
-  abort();
+  ASG_ABORT();
 }
 
 }

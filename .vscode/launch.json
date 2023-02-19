@@ -9,10 +9,7 @@
       "request": "launch",
       "name": "sysu-parser",
       "program": "/root/sysu/build/parser/sysu-parser",
-      // "args": ["/root/SYsU-lang/tester/functional/000_main.sysu.c"],
-      // "args": ["tester/function_test2020/02_arr_defn4.sysu.c"],
-      "args": ["tester/function_test2020/04_func_defn.sysu.c"],
-      // "args": ["tester/function_test2020/03_var_defn2.sysu.c"],
+      "args": ["test.c"],
       // "args": ["/root/SYsU-lang/tester/functional/1081_jump_game.sysu.c"],
       "cwd": "${workspaceFolder}"
     }

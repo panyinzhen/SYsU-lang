@@ -381,7 +381,7 @@ directAbstractDeclarator
 
 initializer
     :   assignmentExpression
-    |   '{' initializerList ','? '}'
+    |   '{' initializerList? ','? '}'
     ;
 
 initializerList
@@ -466,11 +466,12 @@ iterationStatement
 //     ;
 
 jumpStatement
-//     :   ('goto' Identifier
-    :   ('continue'| 'break')
+    :   (
+        // 'goto' Identifier |
+        ('continue'| 'break')
     |   'return' expression?
-//     |   'goto' unaryExpression // GCC extension
-//     )
+    // |   'goto' unaryExpression // GCC extension
+    )
     ';'
     ;
 
@@ -643,7 +644,9 @@ Constant
 
 fragment
 IntegerConstant
-    :   DecimalConstant
+    :   DecimalConstant IntegerSuffix?
+    |   OctalConstant IntegerSuffix?
+    |   HexadecimalConstant IntegerSuffix?
     // :   DecimalConstant IntegerSuffix?
     // |   OctalConstant IntegerSuffix?
     // |   HexadecimalConstant IntegerSuffix?
@@ -657,8 +660,7 @@ BinaryConstant
 
 fragment
 DecimalConstant
-    // :   NonzeroDigit Digit*
-    :   Digit+
+    :   NonzeroDigit Digit*
     ;
 
 fragment

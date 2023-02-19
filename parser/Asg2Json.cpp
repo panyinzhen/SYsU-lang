@@ -38,6 +38,9 @@ Asg2Json::operator()(Expr* obj)
   if (auto p = obj->dcast<DeclRefExpr>())
     return self(p);
 
+  if (auto p = obj->dcast<ParenExpr>())
+    return self(p);
+
   if (auto p = obj->dcast<UnaryExpr>())
     return self(p);
 
@@ -56,7 +59,7 @@ Asg2Json::operator()(Expr* obj)
   if (auto p = obj->dcast<ImplicitCastExpr>())
     return self(p);
 
-  abort();
+  ASG_ABORT();
 }
 
 json::Object
@@ -95,6 +98,21 @@ Asg2Json::operator()(DeclRefExpr* obj)
 }
 
 json::Object
+Asg2Json::operator()(ParenExpr* obj)
+{
+  json::Object ret;
+  WalkedGuard guard(self, obj);
+
+  ret["kind"] = "ParenExpr";
+
+  json::Array inner;
+  inner.push_back(self(obj->sub));
+  ret["inner"] = std::move(inner);
+
+  return ret;
+}
+
+json::Object
 Asg2Json::operator()(UnaryExpr* obj)
 {
   assert(obj->sub);
@@ -118,7 +136,7 @@ Asg2Json::operator()(UnaryExpr* obj)
       break;
 
     default:
-      abort();
+      ASG_ABORT();
   }
 
   json::Array inner;
@@ -200,11 +218,11 @@ Asg2Json::operator()(BinaryExpr* obj)
       break;
 
     case BinaryExpr::kIndex:
-      ret["opcode"] = "[]";
+      ret["kind"] = "ArraySubscriptExpr";
       break;
 
     default:
-      abort();
+      ASG_ABORT();
   }
 
   json::Array inner;
@@ -316,7 +334,7 @@ Asg2Json::operator()(Stmt* obj)
     return ret;
   }
 
-  abort();
+  ASG_ABORT();
 }
 
 json::Object
@@ -441,7 +459,8 @@ Asg2Json::operator()(ReturnStmt* obj)
   ret["kind"] = "ReturnStmt";
 
   json::Array inner;
-  inner.push_back(self(obj->expr));
+  if (obj->expr)
+    inner.push_back(self(obj->expr));
   ret["inner"] = std::move(inner);
 
   return ret;
@@ -460,7 +479,7 @@ Asg2Json::operator()(Decl* obj)
   if (auto p = obj->dcast<FunctionDecl>())
     return self(p);
 
-  abort();
+  ASG_ABORT();
 }
 
 json::Object
@@ -484,8 +503,6 @@ Asg2Json::operator()(VarDecl* obj)
 json::Object
 Asg2Json::operator()(FunctionDecl* obj)
 {
-  assert(obj->body);
-
   json::Object ret;
   WalkedGuard guard(self, obj);
 
@@ -494,9 +511,16 @@ Asg2Json::operator()(FunctionDecl* obj)
   ret["name"] = obj->name;
 
   json::Array inner;
-  for (auto&& i : obj->params)
-    inner.push_back(self(i));
-  inner.push_back(self(obj->body));
+  for (auto&& i : obj->params) {
+    json::Object pobj;
+    pobj["kind"] = "ParmVarDecl";
+    pobj["name"] = i->name;
+    inner.push_back(std::move(pobj));
+  }
+
+  if (obj->body)
+    inner.push_back(self(obj->body));
+
   ret["inner"] = std::move(inner);
 
   return ret;

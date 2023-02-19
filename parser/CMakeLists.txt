@@ -21,9 +21,10 @@ find_package(LLVM REQUIRED)
 llvm_map_components_to_libnames(LLVM_LIBS support)
 
 add_executable(sysu-parser main.cpp ${ANTLR4_SRC_FILES_antlr_c}
-  asg.hpp asg.cpp
+  asg.hpp
   Ast2Asg.hpp Ast2Asg.cpp
   Asg2Json.hpp Asg2Json.cpp
+  InferType.hpp InferType.cpp
 )
 
 target_include_directories(sysu-parser PRIVATE

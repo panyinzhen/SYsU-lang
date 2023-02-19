@@ -1,6 +1,7 @@
 #include "Asg2Json.hpp"
 #include "Ast2Asg.hpp"
 #include "CLexer.h"
+#include "InferType.hpp"
 #include "asg.hpp"
 #include <fstream>
 #include <iostream>

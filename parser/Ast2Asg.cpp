@@ -43,7 +43,7 @@ Ast2Asg::operator()(ast::TranslationUnitContext* ctx)
       ret.push_back(&make<Decl>());
 
     else
-      abort();
+      ASG_ABORT();
   }
 
   return ret;
@@ -75,22 +75,22 @@ Ast2Asg::operator()(ast::DeclarationSpecifiersContext* ctx)
         else if (p->Int())
           ret.base = ret.kInt;
         else
-          abort();
+          ASG_ABORT();
       }
 
       else
-        abort(); // 类型说明符无效
+        ASG_ABORT(); // 类型说明符无效
     }
 
     else if (auto p = i->typeQualifier()) {
       if (p->Const())
         ret.isConst = true;
       else
-        abort();
+        ASG_ABORT();
     }
 
     else
-      abort();
+      ASG_ABORT();
   }
 
   return ret;
@@ -118,22 +118,22 @@ Ast2Asg::operator()(ast::DeclarationSpecifiers2Context* ctx)
         else if (p->Int())
           ret.base = Type::Specs::kInt;
         else
-          abort();
+          ASG_ABORT();
       }
 
       else
-        abort(); // 类型说明符无效
+        ASG_ABORT(); // 类型说明符无效
     }
 
     else if (auto p = i->typeQualifier()) {
       if (p->Const())
         ret.isConst = true;
       else
-        abort();
+        ASG_ABORT();
     }
 
     else
-      abort();
+      ASG_ABORT();
   }
 
   return ret;
@@ -153,11 +153,11 @@ eval_arrlen(Expr* expr)
 
   if (auto p = expr->dcast<DeclRefExpr>()) {
     if (p->decl == nullptr)
-      abort();
+      ASG_ABORT();
 
     auto var = p->decl->dcast<VarDecl>();
     if (!var || !var->type.specs.isConst)
-      abort();
+      ASG_ABORT();
 
     switch (var->type.specs.base) {
       case Type::Specs::kChar:
@@ -167,7 +167,7 @@ eval_arrlen(Expr* expr)
         return eval_arrlen(var->init);
 
       default:
-        abort();
+        ASG_ABORT();
     }
   }
 
@@ -185,7 +185,7 @@ eval_arrlen(Expr* expr)
         return !sub;
 
       default:
-        abort();
+        ASG_ABORT();
     }
   }
 
@@ -234,7 +234,7 @@ eval_arrlen(Expr* expr)
         return lft || rht;
 
       default:
-        abort();
+        ASG_ABORT();
     }
   }
 
@@ -244,7 +244,7 @@ eval_arrlen(Expr* expr)
     return eval_arrlen(p->list[0]);
   }
 
-  abort();
+  ASG_ABORT();
 }
 
 std::pair<TypeExpr*, std::string>
@@ -274,13 +274,13 @@ Ast2Asg::operator()(ast::DirectDeclaratorContext* ctx, TypeExpr* sub)
 
     if (auto p = ctx->parameterTypeList()) {
       for (auto&& i : p->parameterList()->parameterDeclaration())
-        funcType.params.push_back(self(i)->type);
+        funcType.params.push_back(self(i));
     }
 
     return self(ctx->directDeclarator(), &funcType);
   }
 
-  abort();
+  ASG_ABORT();
 }
 
 TypeExpr*
@@ -313,14 +313,14 @@ Ast2Asg::operator()(ast::DirectAbstractDeclaratorContext* ctx, TypeExpr* sub)
 
     if (auto p = ctx->parameterTypeList()) {
       for (auto&& i : p->parameterList()->parameterDeclaration())
-        funcType.params.push_back(self(i)->type);
+        funcType.params.push_back(self(i));
     }
 
     sub = &funcType;
   }
 
   else
-    abort();
+    ASG_ABORT();
 
   if (auto p = ctx->directAbstractDeclarator())
     return self(p, sub);
@@ -418,7 +418,7 @@ Ast2Asg::operator()(ast::EqualityExpressionContext* ctx)
         break;
 
       default:
-        abort();
+        ASG_ABORT();
     }
 
     node.lft = ret;
@@ -460,7 +460,7 @@ Ast2Asg::operator()(ast::RelationalExpressionContext* ctx)
         break;
 
       default:
-        abort();
+        ASG_ABORT();
     }
 
     node.lft = ret;
@@ -495,7 +495,7 @@ Ast2Asg::operator()(ast::AdditiveExpressionContext* ctx)
         break;
 
       default:
-        abort();
+        ASG_ABORT();
     }
 
     node.lft = ret;
@@ -533,7 +533,7 @@ Ast2Asg::operator()(ast::MultiplicativeExpressionContext* ctx)
         break;
 
       default:
-        abort();
+        ASG_ABORT();
     }
 
     node.lft = ret;
@@ -569,7 +569,7 @@ Ast2Asg::operator()(ast::UnaryExpressionContext* ctx)
       break;
 
     default:
-      abort();
+      ASG_ABORT();
   }
 
   ret.sub = self(ctx->unaryExpression());
@@ -603,8 +603,8 @@ Ast2Asg::operator()(ast::PostfixExpressionContext* ctx)
         ++i;
         auto& ret = make<CallExpr>();
         ret.head = sub;
-        if (auto p = dynamic_cast<ast::ArgumentExpressionListContext*>(
-              children[i])) {
+        if (auto p =
+              dynamic_cast<ast::ArgumentExpressionListContext*>(children[i])) {
           for (auto&& i : p->assignmentExpression())
             ret.args.push_back(self(i));
           ++i;
@@ -614,7 +614,7 @@ Ast2Asg::operator()(ast::PostfixExpressionContext* ctx)
       } break;
 
       default:
-        abort();
+        ASG_ABORT();
     }
   }
 
@@ -624,8 +624,11 @@ Ast2Asg::operator()(ast::PostfixExpressionContext* ctx)
 Expr*
 Ast2Asg::operator()(ast::PrimaryExpressionContext* ctx)
 {
-  if (auto p = ctx->expression())
-    return self(p);
+  if (auto p = ctx->expression()) {
+    auto& ret = make<ParenExpr>();
+    ret.sub = self(p);
+    return &ret;
+  }
 
   if (auto p = ctx->Identifier()) {
     auto name = p->getText();
@@ -638,7 +641,20 @@ Ast2Asg::operator()(ast::PrimaryExpressionContext* ctx)
     auto text = p->getText();
 
     auto& ret = make<IntegerLiteral>();
-    ret.val = std::stoi(text);
+
+    assert(!text.empty());
+    if (text[0] != '0')
+      ret.val = std::stoll(text);
+
+    else if (text.size() == 1)
+      ret.val = 0;
+
+    else if (text[1] == 'x' || text[1] == 'X')
+      ret.val = std::stoll(text.substr(2), nullptr, 16);
+
+    else
+      ret.val = std::stoll(text.substr(1), nullptr, 8);
+
     return &ret;
   }
 
@@ -705,7 +721,7 @@ Ast2Asg::operator()(ast::PrimaryExpressionContext* ctx)
               break;
 
             default:
-              abort();
+              ASG_ABORT();
           }
         }
 
@@ -720,7 +736,7 @@ Ast2Asg::operator()(ast::PrimaryExpressionContext* ctx)
     return &ret;
   }
 
-  abort();
+  ASG_ABORT();
 }
 
 Expr*
@@ -729,16 +745,14 @@ Ast2Asg::operator()(ast::InitializerContext* ctx)
   if (auto p = ctx->assignmentExpression())
     return self(p);
 
-  if (auto p = ctx->initializerList()) {
-    auto& ret = make<InitListExpr>();
+  auto& ret = make<InitListExpr>();
 
+  if (auto p = ctx->initializerList()) {
     for (auto&& i : p->initializer())
       ret.list.push_back(self(i));
-
-    return &ret;
   }
 
-  abort();
+  return &ret;
 }
 
 //==============================================================================
@@ -763,7 +777,7 @@ Ast2Asg::operator()(ast::StatementContext* ctx)
   if (auto p = ctx->jumpStatement())
     return self(p);
 
-  abort();
+  ASG_ABORT();
 }
 
 CompoundStmt*
@@ -785,7 +799,7 @@ Ast2Asg::operator()(ast::CompoundStatementContext* ctx)
         ret.subs.push_back(self(q));
 
       else
-        abort();
+        ASG_ABORT();
     }
   }
 
@@ -876,7 +890,7 @@ Ast2Asg::operator()(ast::JumpStatementContext* ctx)
     return &ret;
   }
 
-  abort();
+  ASG_ABORT();
 }
 
 //==============================================================================
@@ -918,37 +932,57 @@ Ast2Asg::operator()(ast::FunctionDefinitionContext* ctx)
     for (auto&& i : p->parameterList()->parameterDeclaration()) {
       auto varDecl = self(i);
       ret.params.push_back(varDecl);
-      funcType.params.push_back(varDecl->type);
+      funcType.params.push_back(varDecl);
 
       localDecls[varDecl->name] = varDecl; // !
     }
   }
 
+  // 函数定义在签名之后就加入符号表，以允许递归调用
+  (*_localDecls)[ret.name] = &ret;
+
   ret.body = self(ctx->compoundStatement());
 
-  // 这个实现允许符号重复定义，新定义会取代旧定义
-  (*_localDecls)[ret.name] = &ret;
   return &ret;
 }
 
-VarDecl*
+Decl*
 Ast2Asg::operator()(ast::InitDeclaratorContext* ctx, Type::Specs specs)
 {
-  auto& ret = make<VarDecl>();
-
   auto [texp, name] = self(ctx->declarator(), nullptr);
-  ret.type.specs = specs;
-  ret.type.texp = texp;
-  ret.name = std::move(name);
+  Decl* ret;
 
-  if (auto p = ctx->initializer())
-    ret.init = self(p);
-  else
-    ret.init = nullptr;
+  if (auto funcType = texp->dcast<FunctionType>()) {
+    auto& fdecl = make<FunctionDecl>();
+    fdecl.type.specs = specs;
+    fdecl.type.texp = funcType;
+    fdecl.name = std::move(name);
+    fdecl.params = funcType->params;
+
+    if (ctx->initializer())
+      ASG_ABORT();
+    fdecl.body = nullptr;
+
+    ret = &fdecl;
+  }
+
+  else {
+    auto& vdecl = make<VarDecl>();
+    vdecl.type.specs = specs;
+    vdecl.type.texp = texp;
+    vdecl.name = std::move(name);
+
+    if (auto p = ctx->initializer())
+      vdecl.init = self(p);
+    else
+      vdecl.init = nullptr;
+
+    ret = &vdecl;
+  }
 
   // 这个实现允许符号重复定义，新定义会取代旧定义
-  (*_localDecls)[ret.name] = &ret;
-  return &ret;
+  (*_localDecls)[ret->name] = ret;
+  return ret;
 }
 
 VarDecl*
@@ -977,7 +1011,7 @@ Ast2Asg::operator()(ast::ParameterDeclarationContext* ctx)
   }
 
   else
-    abort();
+    ASG_ABORT();
 
   return &ret;
 }

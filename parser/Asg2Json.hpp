@@ -25,7 +25,7 @@ private:
       , _obj(obj)
     {
       if (_._walked.find(obj) != _._walked.end())
-        abort();
+        ASG_ABORT();
       _._walked.insert(obj);
     }
 
@@ -41,6 +41,8 @@ private:
   json::Object operator()(IntegerLiteral* obj);
 
   json::Object operator()(StringLiteral* obj);
+
+  json::Object operator()(ParenExpr* obj);
 
   json::Object operator()(DeclRefExpr* obj);
 

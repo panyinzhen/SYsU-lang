@@ -128,7 +128,7 @@ private:
 
   FunctionDecl* operator()(ast::FunctionDefinitionContext* ctx);
 
-  VarDecl* operator()(ast::InitDeclaratorContext* ctx, Type::Specs specs);
+  Decl* operator()(ast::InitDeclaratorContext* ctx, Type::Specs specs);
 
   VarDecl* operator()(ast::ParameterDeclarationContext* ctx);
 
