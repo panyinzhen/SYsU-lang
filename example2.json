@@ -1,0 +1,50 @@
+{
+  "inner": [
+    {
+      "inner": [
+        {
+          "inner": [
+            {
+              "inner": [
+                {
+                  "inner": [
+                    {
+                      "inner": [
+                        {
+                          "inner": [
+                            {
+                              "inner": [
+                                { "kind": "DeclRefExpr" },
+                                { "kind": "IntegerLiteral", "value": "2" }
+                              ],
+                              "kind": "BinaryOperator",
+                              "opcode": "*"
+                            },
+                            { "kind": "DeclRefExpr" }
+                          ],
+                          "kind": "BinaryOperator",
+                          "opcode": "+"
+                        },
+                        { "kind": "IntegerLiteral", "value": "3" }
+                      ],
+                      "kind": "BinaryOperator",
+                      "opcode": "+"
+                    }
+                  ],
+                  "kind": "VarDecl",
+                  "name": "c"
+                }
+              ],
+              "kind": "DeclStmt"
+            },
+            { "inner": [{ "kind": "DeclRefExpr" }], "kind": "ReturnStmt" }
+          ],
+          "kind": "CompoundStmt"
+        }
+      ],
+      "kind": "FunctionDecl",
+      "name": "main"
+    }
+  ],
+  "kind": "TranslationUnitDecl"
+}

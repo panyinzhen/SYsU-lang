@@ -52,6 +52,10 @@ private:
 
   json::Object operator()(InitListExpr* obj);
 
+  json::Object operator()(ImplicitInitExpr* obj);
+
+  json::Object operator()(ImplicitCastExpr* obj);
+
   //============================================================================
   // 语句
   //============================================================================

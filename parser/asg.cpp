@@ -459,11 +459,22 @@ InferType::operator()(FunctionDecl* obj)
   }
 
   // 必须为函数类型
-  if (!obj->type.texp->sub || !obj->type.texp->sub->dcast<FunctionType>())
+  if (obj->type.texp == nullptr)
+    abort();
+  auto funcType = obj->type.texp->dcast<FunctionType>();
+  if (funcType == nullptr)
     abort();
 
-  for (auto&& i : obj->params)
-    self(i);
+  funcType->params.resize(obj->params.size());
+  for (int i = obj->params.size(); --i != -1;) {
+    self(obj->params[i]);
+    funcType->params[i] = obj->params[i]->type;
+  }
+
+  if (obj->body) {
+    for (auto&& i : obj->body->subs)
+      self(i);
+  }
 }
 
 //==============================================================================
@@ -502,7 +513,7 @@ InferType::promote_integer(Expr* exp, int to)
   if (exp->type.texp != nullptr)
     abort();
 
-  switch (Type::Specs::kVoid) {
+  switch (exp->type.specs.base) {
     case Type::Specs::kChar:
     case Type::Specs::kInt:
     case Type::Specs::kLong:
@@ -622,6 +633,7 @@ InferType::assigment_cast(const Type& lft, Expr* rht)
 Expr*
 InferType::infer_init(Expr* init, const Type& to)
 {
+  // https://zh.cppreference.com/w/c/language/scalar_initialization
   if (to.texp == nullptr) {
     if (auto p = init->dcast<ImplicitInitExpr>()) {
       p->type = to;
@@ -637,34 +649,79 @@ InferType::infer_init(Expr* init, const Type& to)
       return &ret;
     }
 
-    return assigment_cast(to, init);
+    return assigment_cast(to, self(init));
   }
 
+  // https://zh.cppreference.com/w/c/language/array_initialization
   if (auto arrType = to.texp->dcast<ArrayType>()) {
     if (auto p = init->dcast<ImplicitInitExpr>()) {
       p->type = to;
       return p;
     }
 
-    auto initList = init->dcast<InitListExpr>();
-    if (initList == nullptr)
-      abort();
+    // 从花括号环绕列表初始化
+    if (auto initList = init->dcast<InitListExpr>()) {
+      auto [ret, _] = infer_initlist(initList->list, 0, to);
+      return ret;
+    }
 
-    if (arrType->len == -1)
-      arrType->len = initList->list.size();
-    else if (initList->list.size() > arrType->len)
-      initList->list.resize(arrType->len);
+    // 从字符串初始化
+    if (to.specs.base == Type::Specs::kChar) {
+      init = self(init);
 
-    Type subType;
-    subType.cate = to.cate;
-    subType.specs = to.specs;
-    subType.texp = arrType->sub;
+      auto p = init->type.texp->dcast<ArrayType>();
+      if (!p || p->sub != nullptr ||
+          init->type.specs.base != Type::Specs::kChar)
+        abort();
+      if (arrType->len == -1)
+        arrType->len = p->len;
+      else
+        p->len = arrType->len;
 
-    for (int i = initList->list.size(); --i != -1;)
-      initList->list[i] = infer_init(initList->list[i], subType);
+      return init;
+    }
 
-    initList->type = to;
-    return initList;
+    abort();
+  }
+
+  abort();
+}
+
+std::pair<Expr*, std::size_t>
+InferType::infer_initlist(const std::vector<Expr*>& list,
+                          std::size_t begin,
+                          const Type& to)
+{
+  if (to.texp == nullptr) {
+    if (begin == list.size())
+      return { nullptr, begin };
+
+    auto ret = infer_init(list[begin], to);
+    return { ret, begin + 1 };
+  }
+
+  if (auto arrType = to.texp->dcast<ArrayType>()) {
+    auto& ret = make<InitListExpr>();
+
+    if (arrType->len == -1) {
+      arrType->len = 0;
+      while (begin < list.size()) {
+        auto [expr, next] = infer_initlist(list, begin, to);
+        ret.list.push_back(expr);
+        begin = next;
+        ++arrType->len;
+      }
+    }
+
+    else {
+      for (int i = 0; i < arrType->len; ++i) {
+        auto [expr, next] = infer_initlist(list, begin, to);
+        ret.list.push_back(expr);
+        begin = next;
+      }
+    }
+
+    return { &ret, begin };
   }
 
   abort();

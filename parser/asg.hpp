@@ -421,6 +421,11 @@ private:
 
   // 推断初始化表达式的类型
   Expr* infer_init(Expr* init, const Type& to);
+
+  // 推断列表初始化的类型，返回构造的初始化表达式和用到了第几个初始化元素
+  std::pair<Expr*, std::size_t> infer_initlist(const std::vector<Expr*>& list,
+                                               std::size_t begin,
+                                               const Type& to);
 };
 
 }
