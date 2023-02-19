@@ -192,6 +192,8 @@ InferType::operator()(BinaryExpr* obj)
     } break;
 
     case BinaryExpr::kAssign: {
+      if (lft->type.specs.isConst)
+        abort();
       rht = assigment_cast(lft->type, rht);
 
       obj->lft = lft;
@@ -585,7 +587,7 @@ type_equal(const Type& a, const Type& b)
 Expr*
 InferType::assigment_cast(const Type& lft, Expr* rht)
 {
-  if (lft.cate != Type::kLValue || lft.specs.isConst)
+  if (lft.cate != Type::kLValue)
     abort();
 
   switch (lft.specs.base) {
@@ -703,10 +705,15 @@ InferType::infer_initlist(const std::vector<Expr*>& list,
   if (auto arrType = to.texp->dcast<ArrayType>()) {
     auto& ret = make<InitListExpr>();
 
+    Type subType;
+    subType.cate = to.cate;
+    subType.specs = to.specs;
+    subType.texp = arrType->sub;
+
     if (arrType->len == -1) {
       arrType->len = 0;
       while (begin < list.size()) {
-        auto [expr, next] = infer_initlist(list, begin, to);
+        auto [expr, next] = infer_initlist(list, begin, subType);
         ret.list.push_back(expr);
         begin = next;
         ++arrType->len;
@@ -715,7 +722,9 @@ InferType::infer_initlist(const std::vector<Expr*>& list,
 
     else {
       for (int i = 0; i < arrType->len; ++i) {
-        auto [expr, next] = infer_initlist(list, begin, to);
+        if (begin == list.size())
+          break;
+        auto [expr, next] = infer_initlist(list, begin, subType);
         ret.list.push_back(expr);
         begin = next;
       }

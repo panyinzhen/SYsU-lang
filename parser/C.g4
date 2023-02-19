@@ -320,9 +320,9 @@ directDeclarator
 //         )*
 //     ;
 
-pointer
-    :  (('*'|'^') typeQualifierList?)+ // ^ - Blocks language extension
-    ;
+// pointer
+//     :  (('*'|'^') typeQualifierList?)+ // ^ - Blocks language extension
+//     ;
 
 typeQualifierList
     :   typeQualifier+
@@ -351,9 +351,9 @@ identifierList
 //     ;
 
 abstractDeclarator
-    :   pointer
+    // :   pointer
     // |   pointer? directAbstractDeclarator gccDeclaratorExtension*
-    |   directAbstractDeclarator
+    :   directAbstractDeclarator
     ;
 
 directAbstractDeclarator

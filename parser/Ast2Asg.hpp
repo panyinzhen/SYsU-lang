@@ -64,14 +64,17 @@ private:
 
   Type::Specs operator()(ast::DeclarationSpecifiers2Context* ctx);
 
-  std::pair<TypeExpr*, std::string> operator()(ast::DeclaratorContext* ctx);
+  std::pair<TypeExpr*, std::string> operator()(ast::DeclaratorContext* ctx,
+                                               TypeExpr* sub);
 
   std::pair<TypeExpr*, std::string> operator()(
-    ast::DirectDeclaratorContext* ctx);
+    ast::DirectDeclaratorContext* ctx,
+    TypeExpr* sub);
 
-  TypeExpr* operator()(ast::AbstractDeclaratorContext* ctx);
+  TypeExpr* operator()(ast::AbstractDeclaratorContext* ctx, TypeExpr* sub);
 
-  TypeExpr* operator()(ast::DirectAbstractDeclaratorContext* ctx);
+  TypeExpr* operator()(ast::DirectAbstractDeclaratorContext* ctx,
+                       TypeExpr* sub);
 
   //============================================================================
   // 表达式

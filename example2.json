@@ -12,32 +12,87 @@
                       "inner": [
                         {
                           "inner": [
-                            {
-                              "inner": [
-                                { "kind": "DeclRefExpr" },
-                                { "kind": "IntegerLiteral", "value": "2" }
-                              ],
-                              "kind": "BinaryOperator",
-                              "opcode": "*"
-                            },
-                            { "kind": "DeclRefExpr" }
+                            { "kind": "IntegerLiteral", "value": "1" },
+                            { "kind": "IntegerLiteral", "value": "3" }
                           ],
-                          "kind": "BinaryOperator",
-                          "opcode": "+"
+                          "kind": "InitListExpr"
                         },
-                        { "kind": "IntegerLiteral", "value": "3" }
+                        {
+                          "inner": [
+                            { "kind": "IntegerLiteral", "value": "5" },
+                            { "kind": "IntegerLiteral", "value": "7" }
+                          ],
+                          "kind": "InitListExpr"
+                        }
                       ],
-                      "kind": "BinaryOperator",
-                      "opcode": "+"
+                      "kind": "InitListExpr"
                     }
                   ],
                   "kind": "VarDecl",
-                  "name": "c"
+                  "name": "a"
                 }
               ],
               "kind": "DeclStmt"
             },
-            { "inner": [{ "kind": "DeclRefExpr" }], "kind": "ReturnStmt" }
+            {
+              "inner": [
+                {
+                  "inner": [
+                    {
+                      "inner": [
+                        {
+                          "inner": [
+                            {
+                              "inner": [
+                                {
+                                  "inner": [
+                                    {
+                                      "inner": [
+                                        {
+                                          "inner": [{ "kind": "DeclRefExpr" }],
+                                          "kind": "ImplicitCastExpr"
+                                        },
+                                        {
+                                          "kind": "IntegerLiteral",
+                                          "value": "0"
+                                        }
+                                      ],
+                                      "kind": "BinaryOperator",
+                                      "opcode": "[]"
+                                    }
+                                  ],
+                                  "kind": "ImplicitCastExpr"
+                                },
+                                { "kind": "IntegerLiteral", "value": "0" }
+                              ],
+                              "kind": "BinaryOperator",
+                              "opcode": "[]"
+                            },
+                            { "kind": "IntegerLiteral", "value": "3" }
+                          ],
+                          "kind": "InitListExpr"
+                        },
+                        {
+                          "inner": [
+                            { "kind": "IntegerLiteral", "value": "5" },
+                            { "kind": "IntegerLiteral", "value": "7" }
+                          ],
+                          "kind": "InitListExpr"
+                        }
+                      ],
+                      "kind": "InitListExpr"
+                    }
+                  ],
+                  "kind": "VarDecl",
+                  "name": "b"
+                }
+              ],
+              "kind": "DeclStmt"
+            },
+            {
+              "inner": [{ "kind": "IntegerLiteral", "value": "0" }],
+              "kind": "ReturnStmt"
+            }
           ],
           "kind": "CompoundStmt"
         }

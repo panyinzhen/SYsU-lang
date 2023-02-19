@@ -140,9 +140,9 @@ Ast2Asg::operator()(ast::DeclarationSpecifiers2Context* ctx)
 }
 
 std::pair<TypeExpr*, std::string>
-Ast2Asg::operator()(ast::DeclaratorContext* ctx)
+Ast2Asg::operator()(ast::DeclaratorContext* ctx, TypeExpr* sub)
 {
-  return self(ctx->directDeclarator());
+  return self(ctx->directDeclarator(), sub);
 }
 
 static int
@@ -248,82 +248,83 @@ eval_arrlen(Expr* expr)
 }
 
 std::pair<TypeExpr*, std::string>
-Ast2Asg::operator()(ast::DirectDeclaratorContext* ctx)
+Ast2Asg::operator()(ast::DirectDeclaratorContext* ctx, TypeExpr* sub)
 {
   if (auto p = ctx->Identifier())
-    return { nullptr, p->getText() };
+    return { sub, p->getText() };
 
   if (auto p = ctx->declarator())
-    return self(p);
-
-  auto [sub, name] = self(ctx->directDeclarator());
+    return self(p, sub);
 
   if (ctx->LeftBracket()) {
-    auto& ret = make<ArrayType>();
-    ret.sub = sub;
+    auto& arrayType = make<ArrayType>();
+    arrayType.sub = sub;
 
     if (auto p = ctx->assignmentExpression())
-      ret.len = eval_arrlen(self(p));
+      arrayType.len = eval_arrlen(self(p));
     else
-      ret.len = -1;
+      arrayType.len = -1;
 
-    return { &ret, std::move(name) };
+    return self(ctx->directDeclarator(), &arrayType);
   }
 
   if (ctx->LeftParen()) {
-    auto& ret = make<FunctionType>();
-    ret.sub = sub;
+    auto& funcType = make<FunctionType>();
+    funcType.sub = sub;
 
     if (auto p = ctx->parameterTypeList()) {
       for (auto&& i : p->parameterList()->parameterDeclaration())
-        ret.params.push_back(self(i)->type);
+        funcType.params.push_back(self(i)->type);
     }
 
-    return { &ret, std::move(name) };
+    return self(ctx->directDeclarator(), &funcType);
   }
 
   abort();
 }
 
 TypeExpr*
-Ast2Asg::operator()(ast::AbstractDeclaratorContext* ctx)
+Ast2Asg::operator()(ast::AbstractDeclaratorContext* ctx, TypeExpr* sub)
 {
-  return self(ctx->directAbstractDeclarator());
+  return self(ctx->directAbstractDeclarator(), sub);
 }
 
 TypeExpr*
-Ast2Asg::operator()(ast::DirectAbstractDeclaratorContext* ctx)
+Ast2Asg::operator()(ast::DirectAbstractDeclaratorContext* ctx, TypeExpr* sub)
 {
   if (auto p = ctx->abstractDeclarator())
-    return self(p);
-
-  TypeExpr* ret;
+    return self(p, sub);
 
   if (ctx->LeftBracket()) {
     auto& arrayType = make<ArrayType>();
+    arrayType.sub = sub;
+
     if (auto p = ctx->assignmentExpression())
       arrayType.len = eval_arrlen(self(p));
     else
       arrayType.len = -1;
-    ret = &arrayType;
+
+    sub = &arrayType;
   }
 
   else if (ctx->LeftParen()) {
     auto& funcType = make<FunctionType>();
+    funcType.sub = sub;
+
     if (auto p = ctx->parameterTypeList()) {
       for (auto&& i : p->parameterList()->parameterDeclaration())
         funcType.params.push_back(self(i)->type);
     }
-    ret = &funcType;
+
+    sub = &funcType;
   }
 
   else
     abort();
 
   if (auto p = ctx->directAbstractDeclarator())
-    ret->sub = self(p);
-
-  return ret;
+    return self(p, sub);
+  return sub;
 }
 
 //==============================================================================
@@ -900,7 +901,7 @@ Ast2Asg::operator()(ast::FunctionDefinitionContext* ctx)
 
   ret.type.specs = self(ctx->declarationSpecifiers());
 
-  auto [texp, name] = self(ctx->directDeclarator());
+  auto [texp, name] = self(ctx->directDeclarator(), nullptr);
   auto& funcType = make<FunctionType>();
   funcType.sub = texp;
   ret.type.texp = &funcType;
@@ -929,7 +930,7 @@ Ast2Asg::operator()(ast::InitDeclaratorContext* ctx, Type::Specs specs)
 {
   auto& ret = make<VarDecl>();
 
-  auto [texp, name] = self(ctx->declarator());
+  auto [texp, name] = self(ctx->declarator(), nullptr);
   ret.type.specs = specs;
   ret.type.texp = texp;
   ret.name = std::move(name);
@@ -951,7 +952,7 @@ Ast2Asg::operator()(ast::ParameterDeclarationContext* ctx)
 
   if (auto p = ctx->declarationSpecifiers()) {
     ret.type.specs = self(p);
-    auto [texp, name] = self(ctx->declarator());
+    auto [texp, name] = self(ctx->declarator(), nullptr);
     ret.type.texp = texp;
     ret.name = std::move(name);
     ret.init = nullptr;
@@ -961,7 +962,7 @@ Ast2Asg::operator()(ast::ParameterDeclarationContext* ctx)
     ret.type.specs = self(p);
 
     if (auto q = ctx->abstractDeclarator())
-      ret.type.texp = self(q);
+      ret.type.texp = self(q, nullptr);
     else
       ret.type.texp = nullptr;
 
