@@ -590,20 +590,26 @@ Ast2Asg::operator()(ast::PostfixExpressionContext* ctx)
                    ->getType();
     switch (token) {
       case ast::LeftBracket: {
+        ++i;
         auto& ret = make<BinaryExpr>();
         ret.op = ret.kIndex;
         ret.lft = sub;
-        ret.rht = self(dynamic_cast<ast::ExpressionContext*>(children[i + 1]));
-        i += 3;
+        ret.rht = self(dynamic_cast<ast::ExpressionContext*>(children[i]));
+        i += 2;
         sub = &ret;
       } break;
 
       case ast::LeftParen: {
+        ++i;
         auto& ret = make<CallExpr>();
         ret.head = sub;
-        while (auto p = dynamic_cast<ast::ExpressionContext*>(children[++i]))
-          ret.args.push_back(self(p));
-        i += 2;
+        if (auto p = dynamic_cast<ast::ArgumentExpressionListContext*>(
+              children[i])) {
+          for (auto&& i : p->assignmentExpression())
+            ret.args.push_back(self(i));
+          ++i;
+        }
+        ++i;
         sub = &ret;
       } break;
 

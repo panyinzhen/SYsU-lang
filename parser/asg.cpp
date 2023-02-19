@@ -256,6 +256,7 @@ InferType::operator()(CallExpr* obj)
 {
   assert(obj->head);
 
+  obj->head = self(obj->head);
   auto fexp = dynamic_cast<FunctionType*>(obj->head->type.texp);
   if (fexp == nullptr)
     abort();
@@ -270,7 +271,7 @@ InferType::operator()(CallExpr* obj)
     abort();
 
   for (int i = fexp->params.size(); --i != -1;)
-    obj->args[i] = assigment_cast(fexp->params[i], obj->args[i]);
+    obj->args[i] = assigment_cast(fexp->params[i], self(obj->args[i]));
 
   obj->type.cate = Type::kRValue;
   obj->type.specs.isConst = 0;
