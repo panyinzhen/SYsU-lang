@@ -51,7 +51,12 @@ InferType::operator()(IntegerLiteral* obj)
 {
   obj->type.cate = Type::kRValue;
   // obj->type.specs.isConst = 1;
-  obj->type.specs.base = Type::Specs::kInt;
+
+  if (obj->val <= INT32_MAX)
+    obj->type.specs.base = Type::Specs::kInt;
+  else
+    obj->type.specs.base = Type::Specs::kLongLong;
+
   obj->type.texp = nullptr;
 
   return obj;
@@ -61,7 +66,7 @@ Expr*
 InferType::operator()(StringLiteral* obj)
 {
   obj->type.cate = Type::kRValue;
-  // obj->type.specs.isConst = 1;
+  obj->type.specs.isConst = 1;
   obj->type.specs.base = Type::Specs::kChar;
 
   if (obj->type.texp == nullptr ||
@@ -85,7 +90,6 @@ InferType::operator()(DeclRefExpr* obj)
 
   // self(obj->decl);
   obj->type = obj->decl->type;
-
   obj->type.cate = Type::kLValue;
 
   return obj;
@@ -157,8 +161,6 @@ InferType::operator()(BinaryExpr* obj)
       lft = promote_integer(lft, rht->type.specs.base);
       rht = promote_integer(rht, lft->type.specs.base);
 
-      obj->lft = lft;
-      obj->rht = rht;
       obj->type = lft->type;
     } break;
 
@@ -176,9 +178,6 @@ InferType::operator()(BinaryExpr* obj)
       lft = promote_integer(lft, rht->type.specs.base);
       rht = promote_integer(rht, lft->type.specs.base);
 
-      obj->lft = lft;
-      obj->rht = rht;
-
       // 关系运算符的结果一定是 int 类型
       obj->type.specs.isConst = 0;
       obj->type.specs.base = Type::Specs::kInt;
@@ -192,9 +191,6 @@ InferType::operator()(BinaryExpr* obj)
       lft = ensure_rvalue(lft);
       rht = ensure_rvalue(rht);
 
-      obj->lft = lft;
-      obj->rht = rht;
-
       // 关系运算符的结果一定是 int 类型
       obj->type.specs.isConst = 0;
       obj->type.specs.base = Type::Specs::kInt;
@@ -207,8 +203,6 @@ InferType::operator()(BinaryExpr* obj)
         ASG_ABORT();
       rht = assigment_cast(lft->type, rht);
 
-      obj->lft = lft;
-      obj->rht = rht;
       obj->type = rht->type;
     } break;
 
@@ -216,8 +210,6 @@ InferType::operator()(BinaryExpr* obj)
       lft = ensure_rvalue(lft);
       rht = ensure_rvalue(rht);
 
-      obj->lft = lft;
-      obj->rht = rht;
       obj->type = rht->type;
     } break;
 
@@ -225,14 +217,6 @@ InferType::operator()(BinaryExpr* obj)
       auto arrayType = lft->type.texp->dcast<ArrayType>();
       if (arrayType == nullptr)
         ASG_ABORT();
-
-      auto& a2p = make<ImplicitCastExpr>();
-      a2p.kind = a2p.kArrayToPointerDecay;
-      a2p.sub = lft;
-      a2p.type = lft->type;
-      a2p.type.cate = Type::kRValue;
-      a2p.type.specs.isConst = 0;
-      lft = &a2p;
 
       if (rht->type.texp != nullptr)
         ASG_ABORT();
@@ -246,10 +230,10 @@ InferType::operator()(BinaryExpr* obj)
         default:
           ASG_ABORT();
       }
+
+      lft = ensure_rvalue(lft);
       rht = ensure_rvalue(rht);
 
-      obj->lft = lft;
-      obj->rht = rht;
       obj->type.cate = Type::kLValue; // !
       obj->type.specs = lft->type.specs;
       obj->type.texp = arrayType->sub;
@@ -259,6 +243,8 @@ InferType::operator()(BinaryExpr* obj)
       ASG_ABORT();
   }
 
+  obj->lft = lft;
+  obj->rht = rht;
   return obj;
 }
 
@@ -342,7 +328,7 @@ InferType::operator()(DeclStmt* obj)
 void
 InferType::operator()(ExprStmt* obj)
 {
-  obj->expr = self(obj->expr);
+  obj->expr = ensure_rvalue(self(obj->expr));
 }
 
 void
@@ -498,6 +484,18 @@ InferType::operator()(FunctionDecl* obj)
 Expr*
 InferType::ensure_rvalue(Expr* exp)
 {
+  if (exp->type.texp->dcast<ArrayType>()) {
+    auto& cst = make<ImplicitCastExpr>();
+    cst.kind = cst.kArrayToPointerDecay;
+
+    cst.type = exp->type;
+    cst.type.cate = Type::kRValue;
+    cst.type.specs.isConst = 0;
+
+    cst.sub = exp;
+    return &cst;
+  }
+
   switch (exp->type.cate) {
     case Type::kLValue: {
       auto& cst = make<ImplicitCastExpr>();
@@ -628,6 +626,15 @@ InferType::assigment_cast(const Type& lft, Expr* rht)
   if (lft.texp != nullptr) {
     if (!lft.texp->dcast<ArrayType>())
       ASG_ABORT();
+
+    if (lft.specs.isConst) {
+      auto& ccst = make<ImplicitCastExpr>();
+      ccst.kind = ccst.kNoOp;
+      ccst.sub = rht;
+      ccst.type = rht->type;
+      ccst.type.specs.isConst = 1;
+      rht = &ccst;
+    }
 
     if (!type_equal(lft, rht->type))
       ASG_ABORT();

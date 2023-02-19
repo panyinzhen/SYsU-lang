@@ -644,9 +644,9 @@ Constant
 
 fragment
 IntegerConstant
-    :   DecimalConstant IntegerSuffix?
-    |   OctalConstant IntegerSuffix?
-    |   HexadecimalConstant IntegerSuffix?
+    :   DecimalConstant
+    |   OctalConstant
+    |   HexadecimalConstant
     // :   DecimalConstant IntegerSuffix?
     // |   OctalConstant IntegerSuffix?
     // |   HexadecimalConstant IntegerSuffix?

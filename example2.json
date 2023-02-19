@@ -1,233 +1,40 @@
 {
   "inner": [
     {
-      "inner": [{ "kind": "ParmVarDecl", "name": "lineno" }],
-      "kind": "FunctionDecl",
-      "name": "_sysy_starttime"
-    },
-    {
-      "inner": [{ "kind": "ParmVarDecl", "name": "lineno" }],
-      "kind": "FunctionDecl",
-      "name": "_sysy_stoptime"
-    },
-    { "inner": [], "kind": "FunctionDecl", "name": "_sysy_getch" },
-    {
-      "inner": [{ "kind": "ParmVarDecl", "name": "a" }],
-      "kind": "FunctionDecl",
-      "name": "_sysy_putch"
-    },
-    { "inner": [], "kind": "FunctionDecl", "name": "_sysy_getint" },
-    {
-      "inner": [{ "kind": "ParmVarDecl", "name": "a" }],
-      "kind": "FunctionDecl",
-      "name": "_sysy_putint"
-    },
-    {
-      "inner": [{ "kind": "ParmVarDecl", "name": "a" }],
-      "kind": "FunctionDecl",
-      "name": "_sysy_getarray"
-    },
-    {
       "inner": [
-        { "kind": "ParmVarDecl", "name": "n" },
-        { "kind": "ParmVarDecl", "name": "a" }
+        {
+          "inner": [
+            { "kind": "IntegerLiteral", "value": "0" },
+            { "kind": "IntegerLiteral", "value": "1" },
+            { "kind": "IntegerLiteral", "value": "2" },
+            { "kind": "IntegerLiteral", "value": "3" },
+            { "kind": "IntegerLiteral", "value": "4" }
+          ],
+          "kind": "InitListExpr"
+        }
       ],
-      "kind": "FunctionDecl",
-      "name": "_sysy_putarray"
+      "kind": "VarDecl",
+      "name": "a"
     },
     {
       "inner": [
         {
           "inner": [
             {
-              "inner": [{ "inner": [], "kind": "VarDecl", "name": "a" }],
-              "kind": "DeclStmt"
-            },
-            {
-              "inner": [{ "inner": [], "kind": "VarDecl", "name": "b" }],
-              "kind": "DeclStmt"
-            },
-            {
-              "inner": [{ "inner": [], "kind": "VarDecl", "name": "c" }],
-              "kind": "DeclStmt"
-            },
-            {
               "inner": [
-                { "kind": "DeclRefExpr" },
-                { "kind": "IntegerLiteral", "value": "1" }
-              ],
-              "kind": "BinaryOperator",
-              "opcode": "="
-            },
-            {
-              "inner": [
-                { "kind": "DeclRefExpr" },
-                { "kind": "IntegerLiteral", "value": "4" }
-              ],
-              "kind": "BinaryOperator",
-              "opcode": "="
-            },
-            {
-              "inner": [
-                { "kind": "DeclRefExpr" },
-                { "kind": "IntegerLiteral", "value": "28" }
-              ],
-              "kind": "BinaryOperator",
-              "opcode": "="
-            },
-            {
-              "inner": [{ "inner": [], "kind": "VarDecl", "name": "t" }],
-              "kind": "DeclStmt"
-            },
-            {
-              "inner": [
-                {
-                  "inner": [
-                    {
-                      "inner": [
-                        {
-                          "inner": [{ "kind": "DeclRefExpr" }],
-                          "kind": "ImplicitCastExpr"
-                        },
-                        {
-                          "inner": [{ "kind": "DeclRefExpr" }],
-                          "kind": "ImplicitCastExpr"
-                        }
-                      ],
-                      "kind": "BinaryOperator",
-                      "opcode": "+"
-                    },
-                    {
-                      "inner": [{ "kind": "DeclRefExpr" }],
-                      "kind": "ImplicitCastExpr"
-                    }
-                  ],
-                  "kind": "BinaryOperator",
-                  "opcode": "!="
-                },
                 {
                   "inner": [
                     {
                       "inner": [
                         { "kind": "DeclRefExpr" },
-                        {
-                          "inner": [
-                            {
-                              "inner": [{ "kind": "DeclRefExpr" }],
-                              "kind": "ImplicitCastExpr"
-                            },
-                            {
-                              "inner": [{ "kind": "DeclRefExpr" }],
-                              "kind": "UnaryOperator",
-                              "opcode": "-"
-                            }
-                          ],
-                          "kind": "BinaryOperator",
-                          "opcode": "%"
-                        }
+                        { "kind": "IntegerLiteral", "value": "4" }
                       ],
-                      "kind": "BinaryOperator",
-                      "opcode": "="
-                    },
-                    {
-                      "inner": [
-                        {
-                          "inner": [{ "kind": "DeclRefExpr" }],
-                          "kind": "ImplicitCastExpr"
-                        },
-                        {
-                          "inner": [{ "kind": "DeclRefExpr" }],
-                          "kind": "ImplicitCastExpr"
-                        }
-                      ],
-                      "kind": "CallExpr"
+                      "kind": "ArraySubscriptExpr"
                     }
                   ],
-                  "kind": "CompoundStmt"
+                  "kind": "ImplicitCastExpr"
                 }
               ],
-              "kind": "IfStmt"
-            },
-            {
-              "inner": [
-                {
-                  "inner": [
-                    {
-                      "inner": [
-                        {
-                          "inner": [{ "kind": "DeclRefExpr" }],
-                          "kind": "ImplicitCastExpr"
-                        },
-                        {
-                          "inner": [{ "kind": "DeclRefExpr" }],
-                          "kind": "ImplicitCastExpr"
-                        }
-                      ],
-                      "kind": "BinaryOperator",
-                      "opcode": "-"
-                    },
-                    {
-                      "inner": [{ "kind": "DeclRefExpr" }],
-                      "kind": "ImplicitCastExpr"
-                    }
-                  ],
-                  "kind": "BinaryOperator",
-                  "opcode": "=="
-                },
-                {
-                  "inner": [
-                    {
-                      "inner": [
-                        { "kind": "DeclRefExpr" },
-                        {
-                          "inner": [
-                            {
-                              "inner": [
-                                {
-                                  "inner": [{ "kind": "DeclRefExpr" }],
-                                  "kind": "ImplicitCastExpr"
-                                },
-                                {
-                                  "inner": [{ "kind": "DeclRefExpr" }],
-                                  "kind": "ImplicitCastExpr"
-                                }
-                              ],
-                              "kind": "BinaryOperator",
-                              "opcode": "%"
-                            },
-                            {
-                              "inner": [{ "kind": "DeclRefExpr" }],
-                              "kind": "ImplicitCastExpr"
-                            }
-                          ],
-                          "kind": "BinaryOperator",
-                          "opcode": "+"
-                        }
-                      ],
-                      "kind": "BinaryOperator",
-                      "opcode": "="
-                    },
-                    {
-                      "inner": [
-                        {
-                          "inner": [{ "kind": "DeclRefExpr" }],
-                          "kind": "ImplicitCastExpr"
-                        },
-                        {
-                          "inner": [{ "kind": "DeclRefExpr" }],
-                          "kind": "ImplicitCastExpr"
-                        }
-                      ],
-                      "kind": "CallExpr"
-                    }
-                  ],
-                  "kind": "CompoundStmt"
-                }
-              ],
-              "kind": "IfStmt"
-            },
-            {
-              "inner": [{ "kind": "IntegerLiteral", "value": "0" }],
               "kind": "ReturnStmt"
             }
           ],

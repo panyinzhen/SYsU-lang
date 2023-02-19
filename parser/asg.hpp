@@ -159,7 +159,7 @@ struct Expr : public Obj
 
 struct IntegerLiteral : public Expr
 {
-  int val;
+  std::uint64_t val;
 };
 
 struct StringLiteral : public Expr
@@ -239,6 +239,7 @@ struct ImplicitCastExpr : public Expr
     kIntegralCast,
     kArrayToPointerDecay,
     kFunctionToPointerDecay,
+    kNoOp,
   } kind{ kINVALID };
   Expr* sub{ nullptr };
 };
