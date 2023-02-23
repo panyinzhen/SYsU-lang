@@ -12,3 +12,5 @@ add_subdirectory(translator)
 add_subdirectory(linker)
 add_subdirectory(librarian)
 add_subdirectory(tester)
+
+add_subdirectory(proving)

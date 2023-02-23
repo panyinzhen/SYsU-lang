@@ -8,18 +8,23 @@
 #include <llvm/Support/raw_ostream.h>
 
 namespace {
+
 llvm::LLVMContext TheContext;
 llvm::Module TheModule("-", TheContext);
 
-llvm::Function *buildFunctionDecl(const llvm::json::Object *O) {
+llvm::Function*
+buildFunctionDecl(const llvm::json::Object* O)
+{
   // First, check for an existing function from a previous declaration.
   auto TheName = O->get("name")->getAsString()->str();
-  llvm::Function *TheFunction = TheModule.getFunction(TheName);
+  llvm::Function* TheFunction = TheModule.getFunction(TheName);
 
   if (!TheFunction)
     TheFunction = llvm::Function::Create(
-        llvm::FunctionType::get(llvm::Type::getInt32Ty(TheContext), {}, false),
-        llvm::Function::ExternalLinkage, TheName, &TheModule);
+      llvm::FunctionType::get(llvm::Type::getInt32Ty(TheContext), {}, false),
+      llvm::Function::ExternalLinkage,
+      TheName,
+      &TheModule);
 
   if (!TheFunction)
     return nullptr;
@@ -29,7 +34,7 @@ llvm::Function *buildFunctionDecl(const llvm::json::Object *O) {
   llvm::IRBuilder<> Builder(BB);
 
   if (auto RetVal = llvm::ConstantInt::get(
-          TheContext, /* i32 3(decimal) */ llvm::APInt(32, "3", 10))) {
+        TheContext, /* i32 3(decimal) */ llvm::APInt(32, "3", 10))) {
     // Finish off the function.
     Builder.CreateRet(RetVal);
 
@@ -44,7 +49,9 @@ llvm::Function *buildFunctionDecl(const llvm::json::Object *O) {
   return nullptr;
 }
 
-void buildTranslationUnitDecl(const llvm::json::Object *O) {
+void
+buildTranslationUnitDecl(const llvm::json::Object* O)
+{
   if (O == nullptr)
     return;
   if (auto kind = O->get("kind")->getAsString()) {
@@ -53,16 +60,19 @@ void buildTranslationUnitDecl(const llvm::json::Object *O) {
     assert(0);
   }
   if (auto inner = O->getArray("inner"))
-    for (const auto &it : *inner)
+    for (const auto& it : *inner)
       if (auto P = it.getAsObject())
         if (auto kind = P->get("kind")->getAsString()) {
           if (*kind == "FunctionDecl")
             buildFunctionDecl(P);
         }
 }
+
 } // namespace
 
-int main() {
+int
+main()
+{
   auto llvmin = llvm::MemoryBuffer::getFileOrSTDIN("-");
   auto json = llvm::json::parse(llvmin.get()->getBuffer());
   buildTranslationUnitDecl(json->getAsObject());
