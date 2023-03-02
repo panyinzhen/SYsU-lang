@@ -12,6 +12,14 @@
       "args": ["test.c"],
       // "args": ["/root/SYsU-lang/tester/functional/1081_jump_game.sysu.c"],
       "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "proving",
+      "program": "/root/sysu/build/proving/proving",
+      "args": [],
+      "cwd": "${workspaceFolder}"
     }
   ]
 }

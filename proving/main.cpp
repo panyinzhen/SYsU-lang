@@ -1,36 +1,90 @@
 #include <llvm/IR/IRBuilder.h>
+#include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/Module.h>
 #include <llvm/IR/Verifier.h>
 #include <llvm/Support/raw_ostream.h>
-#include <llvm/Transforms/Utils/ModuleUtils.h>
 
-llvm::LLVMContext gCtx;
-llvm::Module gMod("-", gCtx);
+using namespace llvm;
+
+LLVMContext gCtx;
+Module gMod("-", gCtx);
+
+// int
+const auto kIntTy = Type::getInt32Ty(gCtx);
+
+// char
+const auto kCharTy = Type::getInt8Ty(gCtx);
+
+// char *
+const auto kCharPTy = kCharTy->getPointerTo();
+
+// char **
+const auto kCharPPTy = kCharPTy->getPointerTo();
+
+// printf
+const auto kPrintfTy = FunctionType::get(kIntTy, { kCharPTy }, true);
+const auto kPrintfFun =
+  Function::Create(kPrintfTy, Function::ExternalLinkage, "printf", gMod);
+
+// main
+const auto kMainTy = FunctionType::get(kIntTy, { kIntTy, kCharPPTy }, false);
+const auto kMainFun =
+  Function::Create(kMainTy, Function::ExternalLinkage, "main", gMod);
+
+// "%s\n"
+const auto kFmtstrVarC = ConstantDataArray::getString(gCtx, "%s\n");
+const auto kFmtstrVar =
+  new llvm::GlobalVariable(gMod,
+                           kFmtstrVarC->getType(),
+                           false,
+                           llvm::GlobalVariable::ExternalLinkage,
+                           kFmtstrVarC);
 
 int
 main()
 {
-  {
-    auto i32Ty = llvm::Type::getInt32Ty(gCtx);
-    auto gvar =
-      llvm::dyn_cast<llvm::GlobalVariable>(gMod.getOrInsertGlobal("g", i32Ty));
-    auto init = llvm::ConstantInt::get(i32Ty, 30);
-    gvar->setInitializer(init);
-  }
+  auto entryBB = BasicBlock::Create(gCtx, "entry", kMainFun);
+  llvm::IRBuilder<> entryIRB(entryBB);
 
-  {
-    auto ctorType =
-      llvm::FunctionType::get(llvm::Type::getVoidTy(gCtx), {}, false);
+  auto condBB = BasicBlock::Create(gCtx, "cond", kMainFun);
+  llvm::IRBuilder<> condIRB(condBB);
 
-    auto ctorFunc =
-      llvm::Function::Create(llvm::cast<llvm::FunctionType>(ctorType),
-                             llvm::GlobalValue::LinkageTypes::ExternalLinkage,
-                             "my_constructor",
-                             &gMod);
+  auto loopBB = BasicBlock::Create(gCtx, "loop", kMainFun);
+  llvm::IRBuilder<> loopIRB(loopBB);
 
-    llvm::appendToGlobalCtors(gMod, ctorFunc, 0, nullptr);
-  }
+  auto retBB = BasicBlock::Create(gCtx, "ret", kMainFun);
+  llvm::IRBuilder<> retIRB(retBB);
 
+  auto argIter = kMainFun->arg_begin();
+  auto argcVar = &*argIter, argvVar = &*++argIter;
+  argcVar->setName("argc"), argvVar->setName("argv");
+
+  // entry
+  entryIRB.CreateBr(condBB);
+
+  // cond
+  auto iVar = condIRB.CreatePHI(kIntTy, 2, "i");
+  condIRB.CreateCondBr(condIRB.CreateICmpSLT(iVar, argcVar), loopBB, retBB);
+  iVar->addIncoming(ConstantInt::get(kIntTy, 0), entryBB);
+
+  // loop
+  auto fmtstrVar = loopIRB.CreateBitCast(kFmtstrVar, kCharPTy);
+  loopIRB.CreateCall(
+    kPrintfFun,
+    {
+      loopIRB.CreateGEP(
+        fmtstrVar->getType(), fmtstrVar, ConstantInt::get(kIntTy, 0)),
+      loopIRB.CreateLoad(kCharPTy, loopIRB.CreateGEP(kCharPTy, argvVar, iVar)),
+    });
+  iVar->addIncoming(loopIRB.CreateAdd(iVar, ConstantInt::get(kIntTy, 1)),
+                    loopBB);
+  loopIRB.CreateBr(condBB);
+
+  // ret
+  retIRB.CreateRet(ConstantInt::get(kIntTy, 0));
+
+  gMod.print(llvm::outs(), nullptr);
+  llvm::outs() << '\n';
   if (llvm::verifyModule(gMod, &llvm::outs()))
     return -1;
-  gMod.print(llvm::outs(), nullptr);
 }

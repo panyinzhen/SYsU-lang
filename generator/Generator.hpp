@@ -21,6 +21,9 @@ public:
   llvm::Module& operator()(const TranslationUnit& tu);
 
 private:
+  llvm::Function* _curFunc;
+
+private:
   //============================================================================
   // 类型
   //============================================================================
@@ -31,19 +34,19 @@ private:
   // 表达式
   //============================================================================
 
-  void operator()(Expr* obj);
+  llvm::Value* operator()(Expr* obj);
 
-  void operator()(IntegerLiteral* obj);
+  llvm::Value* operator()(IntegerLiteral* obj);
 
-  void operator()(StringLiteral* obj);
+  llvm::Value* operator()(StringLiteral* obj);
 
-  void operator()(DeclRefExpr* obj);
+  llvm::Value* operator()(DeclRefExpr* obj);
 
-  void operator()(UnaryExpr* obj);
+  llvm::Value* operator()(UnaryExpr* obj);
 
-  void operator()(BinaryExpr* obj);
+  llvm::Value* operator()(BinaryExpr* obj);
 
-  void operator()(CallExpr* obj);
+  llvm::Value* operator()(CallExpr* obj);
 
   void operator()(InitListExpr* obj);
 
@@ -84,6 +87,9 @@ private:
   void operator()(VarDecl* obj);
 
   void operator()(FunctionDecl* obj);
+
+private:
+  llvm::Constant* trans_init(Expr* obj);
 };
 
 }

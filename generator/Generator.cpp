@@ -41,8 +41,21 @@ Generator::operator()(Decl* obj)
 void
 Generator::operator()(VarDecl* obj)
 {
-  auto gvar = _mod.getOrInsertGlobal(obj->name, self(obj->type));
-  
+  auto ty = self(obj->type);
+  auto init = trans_init(obj->init);
+  auto gvar = new llvm::GlobalVariable(
+    _mod, ty, false, llvm::GlobalVariable::ExternalLinkage, init, obj->name);
+}
+
+void
+Generator::operator()(FunctionDecl* obj)
+{
+  auto fty = llvm::dyn_cast<llvm::FunctionType>(self(obj->type));
+  _curFunc = llvm::Function::Create(
+    fty, llvm::GlobalVariable::ExternalLinkage, obj->name, _mod);
+  auto argIter = _curFunc->arg_begin();
+  for (auto&& param : obj->params)
+    argIter->setName(obj->name), ++argIter;
 }
 
 }
