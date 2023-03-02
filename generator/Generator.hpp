@@ -48,17 +48,22 @@ private:
 
   llvm::Value* operator()(CallExpr* obj);
 
-  void operator()(InitListExpr* obj);
+  llvm::Value* operator()(InitListExpr* obj);
 
-  void operator()(ImplicitInitExpr* obj);
+  llvm::Constant* operator()(ImplicitInitExpr* obj);
 
-  void operator()(ImplicitCastExpr* obj);
+  llvm::Value* operator()(ImplicitCastExpr* obj);
 
   //============================================================================
   // 语句
   //============================================================================
 
-  void operator()(Stmt* obj);
+  /**
+   * @param obj 待翻译语句
+   * @param enter 空的入口块，翻译函数可以直接使用这个块
+   * @return 所有语句的翻译函数应该创建一个新的空出口块返回
+   */
+  llvm::BasicBlock* operator()(Stmt* obj, llvm::BasicBlock* enter);
 
   void operator()(DeclStmt* obj);
 
@@ -89,7 +94,7 @@ private:
   void operator()(FunctionDecl* obj);
 
 private:
-  llvm::Constant* trans_init(Expr* obj);
+  llvm::Constant* trans_static_init(Expr* obj);
 };
 
 }

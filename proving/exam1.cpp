@@ -1,3 +1,12 @@
+/**
+ * 演示了：
+ * 1. 定义全局变量以及初始化
+ * 2. 声明和定义函数
+ * 3. 使用Φ结点实现循环
+ * 4. 算数运算和指针寻址
+ * 5. 函数调用和返回
+ */
+
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
