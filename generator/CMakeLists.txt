@@ -24,7 +24,7 @@ add_executable(sysu-generator
   Ast2Asg.hpp Ast2Asg.cpp
   Asg2Json.hpp Asg2Json.cpp
   InferType.hpp InferType.cpp
-  Generator.hpp Generator.cpp
+  EmitIR.hpp EmitIR.cpp
 )
 
 target_include_directories(sysu-generator PRIVATE .

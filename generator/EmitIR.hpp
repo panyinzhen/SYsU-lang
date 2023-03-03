@@ -4,14 +4,14 @@
 
 namespace asg {
 
-class Generator
+class EmitIR
 {
 public:
   llvm::LLVMContext _ctx;
   llvm::Module _mod;
 
 public:
-  Generator()
+  EmitIR()
     : _ctx()
     , _mod("-", _ctx)
   {

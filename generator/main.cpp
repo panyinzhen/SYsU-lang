@@ -1,7 +1,7 @@
 #include "Asg2Json.hpp"
 #include "Ast2Asg.hpp"
 #include "CLexer.h"
-#include "Generator.hpp"
+#include "EmitIR.hpp"
 #include "InferType.hpp"
 #include "asg.hpp"
 #include <fstream>
@@ -36,11 +36,11 @@ main(int argc, char* argv[])
   asg::InferType inferType;
   inferType(asg);
 
-  asg::Asg2Json asg2json;
-  llvm::json::Value json = asg2json(asg);
-  llvm::outs() << json << '\n';
+  // asg::Asg2Json asg2json;
+  // llvm::json::Value json = asg2json(asg);
+  // llvm::outs() << json << '\n';
 
-  asg::Generator generator;
+  asg::EmitIR generator;
   auto& mod = generator(asg);
   mod.print(llvm::outs(), nullptr, false, true);
 }

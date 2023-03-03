@@ -1,4 +1,4 @@
-#include "Generator.hpp"
+#include "EmitIR.hpp"
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/Transforms/Utils/ModuleUtils.h>
 
@@ -7,7 +7,7 @@
 namespace asg {
 
 llvm::Module&
-Generator::operator()(const asg::TranslationUnit& tu)
+EmitIR::operator()(const asg::TranslationUnit& tu)
 {
   for (auto&& i : tu)
     self(i);
@@ -19,7 +19,7 @@ Generator::operator()(const asg::TranslationUnit& tu)
 //==============================================================================
 
 llvm::Type*
-Generator::operator()(const Type& type)
+EmitIR::operator()(const Type& type)
 {
   if (type.texp == nullptr) {
     switch (type.specs.base) {
@@ -71,7 +71,7 @@ Generator::operator()(const Type& type)
 //============================================================================
 
 llvm::BasicBlock*
-Generator::operator()(Stmt* obj, llvm::BasicBlock* enter)
+EmitIR::operator()(Stmt* obj, llvm::BasicBlock* enter)
 {
   return enter;
 }
@@ -81,7 +81,7 @@ Generator::operator()(Stmt* obj, llvm::BasicBlock* enter)
 //============================================================================
 
 void
-Generator::operator()(Decl* obj)
+EmitIR::operator()(Decl* obj)
 {
   if (auto p = obj->dcast<VarDecl>())
     return self(p);
@@ -93,7 +93,7 @@ Generator::operator()(Decl* obj)
 }
 
 void
-Generator::operator()(VarDecl* obj)
+EmitIR::operator()(VarDecl* obj)
 {
   auto ty = self(obj->type);
   auto init = trans_static_init(obj->init);
@@ -102,7 +102,7 @@ Generator::operator()(VarDecl* obj)
 }
 
 void
-Generator::operator()(FunctionDecl* obj)
+EmitIR::operator()(FunctionDecl* obj)
 {
   // 创建函数
   auto fty = llvm::dyn_cast<llvm::FunctionType>(self(obj->type));
@@ -124,7 +124,7 @@ Generator::operator()(FunctionDecl* obj)
 }
 
 llvm::Constant*
-Generator::trans_static_init(Expr* obj)
+EmitIR::trans_static_init(Expr* obj)
 {
   // https://zh.cppreference.com/w/c/language/constant_expression
 
