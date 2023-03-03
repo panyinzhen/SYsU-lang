@@ -14,6 +14,54 @@ Generator::operator()(const asg::TranslationUnit& tu)
   return _mod;
 }
 
+//==============================================================================
+// 类型
+//==============================================================================
+
+llvm::Type*
+Generator::operator()(const Type& type)
+{
+  if (type.texp == nullptr) {
+    switch (type.specs.base) {
+      case Type::Specs::kVoid:
+        return llvm::Type::getVoidTy(_ctx);
+
+      case Type::Specs::kChar:
+        return llvm::Type::getInt8Ty(_ctx);
+
+      case Type::Specs::kInt:
+      case Type::Specs::kLong:
+        return llvm::Type::getInt32Ty(_ctx);
+
+      case Type::Specs::kLongLong:
+        return llvm::Type::getInt64Ty(_ctx);
+
+      default:
+        ASG_ABORT();
+    }
+  }
+
+  Type subt;
+  subt.cate = type.cate;
+  subt.specs = type.specs;
+  subt.texp = type.texp->sub;
+
+  if (auto p = type.texp->dcast<ArrayType>()) {
+    if (p->len == -1)
+      return self(subt)->getPointerTo();
+    return llvm::ArrayType::get(self(subt), p->len);
+  }
+
+  if (auto p = type.texp->dcast<FunctionType>()) {
+    std::vector<llvm::Type*> pty;
+    for (auto&& i : p->params)
+      pty.push_back(self(i->type));
+    return llvm::FunctionType::get(self(subt), std::move(pty), false);
+  }
+
+  ASG_ABORT();
+}
+
 //============================================================================
 // 表达式
 //============================================================================
@@ -21,6 +69,12 @@ Generator::operator()(const asg::TranslationUnit& tu)
 //============================================================================
 // 语句
 //============================================================================
+
+llvm::BasicBlock*
+Generator::operator()(Stmt* obj, llvm::BasicBlock* enter)
+{
+  return enter;
+}
 
 //============================================================================
 // 声明
@@ -195,12 +249,51 @@ Generator::trans_static_init(Expr* obj)
   }
 
   if (auto p = obj->dcast<ImplicitInitExpr>()) {
+    auto& type = p->type;
+    if (type.texp == nullptr) {
+      llvm::Type* ty;
+      switch (type.specs.base) {
+        case Type::Specs::kChar:
+          ty = llvm::Type::getInt8Ty(_ctx);
+          break;
+
+        case Type::Specs::kInt:
+        case Type::Specs::kLong:
+          ty = llvm::Type::getInt32Ty(_ctx);
+          break;
+
+        case Type::Specs::kLongLong:
+          ty = llvm::Type::getInt64Ty(_ctx);
+          break;
+
+        default:
+          ASG_ABORT();
+      }
+      return llvm::ConstantInt::get(ty, 0);
+    }
+    return llvm::ConstantAggregateZero::get(self(type));
   }
 
   if (auto p = obj->dcast<ImplicitCastExpr>()) {
-  }
+    auto sub = trans_static_init(p->sub);
 
-  // TODO
+    switch (p->kind) {
+      case ImplicitCastExpr::kLValueToRValue:
+      case ImplicitCastExpr::kNoOp:
+        return sub;
+
+      case ImplicitCastExpr::kIntegralCast: {
+        auto ity = llvm::dyn_cast<llvm::ConstantInt>(sub);
+        return llvm::ConstantInt::get(self(p->type), ity->getValue());
+      }
+
+        // case ImplicitCastExpr::kArrayToPointerDecay:
+        // case ImplicitCastExpr::kFunctionToPointerDecay:
+
+      default:
+        ASG_ABORT();
+    }
+  }
 
   ASG_ABORT();
 }

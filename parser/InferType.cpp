@@ -723,11 +723,14 @@ InferType::infer_initlist(const std::vector<Expr*>& list,
 
   if (auto arrType = to.texp->dcast<ArrayType>()) {
     auto& ret = make<InitListExpr>();
+    ret.type = to;
+    ret.type.specs.isConst = 0;
 
     Type subType;
     subType.cate = to.cate;
     subType.specs = to.specs;
     subType.texp = arrType->sub;
+    ret.type.cate = Type::kRValue;
 
     if (arrType->len == -1) {
       arrType->len = 0;

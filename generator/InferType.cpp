@@ -700,6 +700,9 @@ InferType::infer_initlist(const std::vector<Expr*>& list,
 
   if (auto arrType = to.texp->dcast<ArrayType>()) {
     auto& ret = make<InitListExpr>();
+    ret.type = to;
+    ret.type.specs.isConst = 0;
+    ret.type.cate = Type::kRValue;
 
     Type subType;
     subType.cate = to.cate;

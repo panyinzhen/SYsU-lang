@@ -20,43 +20,156 @@ Asg2Json::operator()(TranslationUnit& tu)
 }
 
 //==============================================================================
+// 类型
+//==============================================================================
+
+std::string
+Asg2Json::operator()(TypeExpr* texp)
+{
+  WalkedGuard guard(self, texp);
+
+  if (auto p = texp->dcast<ArrayType>()) {
+    std::string ret = "[";
+
+    if (p->len != -1)
+      ret += std::to_string(p->len);
+    ret.push_back(']');
+
+    if (texp->sub != nullptr)
+      ret += self(texp->sub);
+
+    return ret;
+  }
+
+  if (auto p = texp->dcast<FunctionType>()) {
+    std::string ret;
+
+    if (texp->sub != nullptr)
+      ret = std::string("(") + self(texp->sub) + ")";
+
+    ret += " (";
+    if (!p->params.empty()) {
+      auto it = p->params.begin(), end = p->params.end();
+      while (true) {
+        ret += self((*it)->type);
+        if (++it == end)
+          break;
+        ret += ", ";
+      }
+    }
+    ret.push_back(')');
+
+    return ret;
+  }
+
+  ASG_ABORT();
+}
+
+std::string
+Asg2Json::operator()(const Type& type)
+{
+  std::string ret;
+
+  if (type.specs.isConst)
+    ret += "const ";
+
+  switch (type.specs.base) {
+    case Type::Specs::kINVALID:
+      ret += "INVALID";
+      break;
+
+    case Type::Specs::kVoid:
+      ret += "void";
+      break;
+
+    case Type::Specs::kChar:
+      ret += "char";
+      break;
+
+    case Type::Specs::kInt:
+      ret += "int";
+      break;
+
+    case Type::Specs::kLong:
+      ret += "long";
+      break;
+
+    case Type::Specs::kLongLong:
+      ret += "long long";
+      break;
+
+    default:
+      ASG_ABORT();
+  }
+
+  if (type.texp)
+    ret += self(type.texp);
+
+  return ret;
+}
+
+//==============================================================================
 // 表达式
 //==============================================================================
 
 json::Object
 Asg2Json::operator()(Expr* obj)
 {
+  json::Object ret;
+
   if (auto p = obj->dcast<IntegerLiteral>())
-    return self(p);
+    ret = std::move(self(p));
 
-  if (auto p = obj->dcast<StringLiteral>())
-    return self(p);
+  else if (auto p = obj->dcast<StringLiteral>())
+    ret = std::move(self(p));
 
-  if (auto p = obj->dcast<DeclRefExpr>())
-    return self(p);
+  else if (auto p = obj->dcast<DeclRefExpr>())
+    ret = std::move(self(p));
 
-  if (auto p = obj->dcast<DeclRefExpr>())
-    return self(p);
+  else if (auto p = obj->dcast<DeclRefExpr>())
+    ret = std::move(self(p));
 
-  if (auto p = obj->dcast<UnaryExpr>())
-    return self(p);
+  else if (auto p = obj->dcast<UnaryExpr>())
+    ret = std::move(self(p));
 
-  if (auto p = obj->dcast<BinaryExpr>())
-    return self(p);
+  else if (auto p = obj->dcast<BinaryExpr>())
+    ret = std::move(self(p));
 
-  if (auto p = obj->dcast<CallExpr>())
-    return self(p);
+  else if (auto p = obj->dcast<CallExpr>())
+    ret = std::move(self(p));
 
-  if (auto p = obj->dcast<InitListExpr>())
-    return self(p);
+  else if (auto p = obj->dcast<InitListExpr>())
+    ret = std::move(self(p));
 
-  if (auto p = obj->dcast<ImplicitInitExpr>())
-    return self(p);
+  else if (auto p = obj->dcast<ImplicitInitExpr>())
+    ret = std::move(self(p));
 
-  if (auto p = obj->dcast<ImplicitCastExpr>())
-    return self(p);
+  else if (auto p = obj->dcast<ImplicitCastExpr>())
+    ret = std::move(self(p));
 
-  ASG_ABORT();
+  else
+    ASG_ABORT();
+
+  ret["type"] = json::Object({ { "qualType", self(obj->type) } });
+
+  switch (obj->type.cate) {
+    case Type::kINVALID:
+      ret["valueCategory"] = "INVALID";
+      break;
+
+    case Type::kLValue:
+      ret["valueCategory"] = "lvalue";
+      break;
+
+    case Type::kRValue:
+      ret["valueCategory"] = "pralue";
+      break;
+
+    default:
+      ASG_ABORT();
+  }
+
+  return ret;
 }
 
 json::Object
@@ -517,13 +630,20 @@ Asg2Json::operator()(ReturnStmt* obj)
 json::Object
 Asg2Json::operator()(Decl* obj)
 {
+  json::Object ret;
+
   if (auto p = obj->dcast<VarDecl>())
-    return self(p);
+    ret = std::move(self(p));
 
-  if (auto p = obj->dcast<FunctionDecl>())
-    return self(p);
+  else if (auto p = obj->dcast<FunctionDecl>())
+    ret = std::move(self(p));
 
-  ASG_ABORT();
+  else
+    ASG_ABORT();
+
+  ret["type"] = json::Object({ { "qualType", self(obj->type) } });
+
+  return ret;
 }
 
 json::Object
