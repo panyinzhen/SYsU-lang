@@ -1,5 +1,6 @@
 #pragma once
 
+#include <any>
 #include <memory>
 #include <string>
 #include <unordered_set>
@@ -28,6 +29,9 @@ public:
 
   template<typename... Ts>
   class Ptr;
+
+public:
+  std::any any; /// 留给遍历器存放任意数据
 
 public:
   virtual ~Obj() = default;

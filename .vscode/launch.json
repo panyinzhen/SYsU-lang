@@ -26,8 +26,9 @@
       "request": "launch",
       "name": "sysu-generator",
       "program": "/root/sysu/build/generator/sysu-generator",
+      // "args": ["/root/SYsU-lang/tester/functional/011_const_array_defn.sysu.c"],
+      "args": ["/root/SYsU-lang/tester/functional/038_continue.sysu.c"],
       // "args": ["/root/SYsU-lang/tester/functional/1081_jump_game.sysu.c"],
-      "args": ["/root/SYsU-lang/tester/functional/011_const_array_defn.sysu.c"],
       "cwd": "${workspaceFolder}"
     }
   ]

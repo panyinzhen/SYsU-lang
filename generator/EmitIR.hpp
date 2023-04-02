@@ -1,4 +1,5 @@
 #include "asg.hpp"
+#include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
 
@@ -21,7 +22,14 @@ public:
   llvm::Module& operator()(const TranslationUnit& tu);
 
 private:
-  llvm::Function* _curFunc;
+  struct LoopAny
+  {
+    llvm::BasicBlock *continue_, *break_;
+  };
+
+private:
+  llvm::Function* _curFunc;   // 传参给编译语句
+  llvm::IRBuilder<>* _curIrb; // 传参给编译表达式
 
 private:
   //============================================================================
@@ -65,23 +73,23 @@ private:
    */
   llvm::BasicBlock* operator()(Stmt* obj, llvm::BasicBlock* enter);
 
-  void operator()(DeclStmt* obj);
+  llvm::BasicBlock* operator()(DeclStmt* obj, llvm::BasicBlock* enter);
 
-  void operator()(ExprStmt* obj);
+  llvm::BasicBlock* operator()(ExprStmt* obj, llvm::BasicBlock* enter);
 
-  void operator()(CompoundStmt* obj);
+  llvm::BasicBlock* operator()(CompoundStmt* obj, llvm::BasicBlock* enter);
 
-  void operator()(IfStmt* obj);
+  llvm::BasicBlock* operator()(IfStmt* obj, llvm::BasicBlock* enter);
 
-  void operator()(WhileStmt* obj);
+  llvm::BasicBlock* operator()(WhileStmt* obj, llvm::BasicBlock* enter);
 
-  void operator()(DoStmt* obj);
+  llvm::BasicBlock* operator()(DoStmt* obj, llvm::BasicBlock* enter);
 
-  void operator()(BreakStmt* obj);
+  llvm::BasicBlock* operator()(BreakStmt* obj, llvm::BasicBlock* enter);
 
-  void operator()(ContinueStmt* obj);
+  llvm::BasicBlock* operator()(ContinueStmt* obj, llvm::BasicBlock* enter);
 
-  void operator()(ReturnStmt* obj);
+  llvm::BasicBlock* operator()(ReturnStmt* obj, llvm::BasicBlock* enter);
 
   //============================================================================
   // 声明
@@ -95,6 +103,7 @@ private:
 
 private:
   llvm::Constant* trans_static_init(Expr* obj);
+  llvm::Value* boolize_cond(llvm::Value* cond) { return cond; }
 };
 
 }
