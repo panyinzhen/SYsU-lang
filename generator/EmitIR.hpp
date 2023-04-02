@@ -44,9 +44,9 @@ private:
 
   llvm::Value* operator()(Expr* obj);
 
-  llvm::Value* operator()(IntegerLiteral* obj);
+  llvm::Constant* operator()(IntegerLiteral* obj);
 
-  llvm::Value* operator()(StringLiteral* obj);
+  llvm::Constant* operator()(StringLiteral* obj);
 
   llvm::Value* operator()(DeclRefExpr* obj);
 
@@ -56,11 +56,13 @@ private:
 
   llvm::Value* operator()(CallExpr* obj);
 
-  llvm::Value* operator()(InitListExpr* obj);
+  llvm::Value* operator()(ImplicitCastExpr* obj);
 
   llvm::Constant* operator()(ImplicitInitExpr* obj);
 
-  llvm::Value* operator()(ImplicitCastExpr* obj);
+  void trans_init(llvm::Value* val, Expr* obj);
+
+  llvm::Constant* trans_static_init(Expr* obj);
 
   //============================================================================
   // 语句
@@ -102,7 +104,6 @@ private:
   void operator()(FunctionDecl* obj);
 
 private:
-  llvm::Constant* trans_static_init(Expr* obj);
   llvm::Value* boolize_cond(llvm::Value* cond) { return cond; }
 };
 

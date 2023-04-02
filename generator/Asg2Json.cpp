@@ -440,6 +440,26 @@ Asg2Json::operator()(ImplicitCastExpr* obj)
   inner.push_back(self(obj->sub));
   ret["inner"] = std::move(inner);
 
+  switch (obj->kind) {
+    case ImplicitCastExpr::kINVALID:
+      ret["castKind"] = "INVALID";
+
+    case ImplicitCastExpr::kLValueToRValue:
+      ret["castKind"] = "LValueToRValue";
+
+    case ImplicitCastExpr::kIntegralCast:
+      ret["castKind"] = "IntegralCast";
+
+    case ImplicitCastExpr::kArrayToPointerDecay:
+      ret["castKind"] = "ArrayToPointerDecay";
+
+    case ImplicitCastExpr::kFunctionToPointerDecay:
+      ret["castKind"] = "FunctionToPointerDecay";
+      
+    case ImplicitCastExpr::kNoOp:
+      ret["castKind"] = "NoOp";
+  }
+
   return ret;
 }
 

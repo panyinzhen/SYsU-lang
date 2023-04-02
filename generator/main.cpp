@@ -6,6 +6,7 @@
 #include "asg.hpp"
 #include <fstream>
 #include <iostream>
+#include <llvm/IR/Verifier.h>
 
 using namespace antlr_c;
 
@@ -36,11 +37,15 @@ main(int argc, char* argv[])
   asg::InferType inferType;
   inferType(asg);
 
-  // asg::Asg2Json asg2json;
-  // llvm::json::Value json = asg2json(asg);
-  // llvm::outs() << json << '\n';
+  asg::Asg2Json asg2json;
+  llvm::json::Value json = asg2json(asg);
+  llvm::outs() << json << '\n';
 
   asg::EmitIR generator;
   auto& mod = generator(asg);
   mod.print(llvm::outs(), nullptr, false, true);
+
+  llvm::outs() << '\n';
+  if (llvm::verifyModule(mod, &llvm::outs()))
+    return -1;
 }

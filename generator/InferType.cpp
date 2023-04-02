@@ -218,10 +218,10 @@ InferType::operator()(BinaryExpr* obj)
           ASG_ABORT();
       }
 
-      lft = ensure_rvalue(lft);
+      lft = ensure_rvalue(lft); // 怎么输出的不是 ArrayToPointerCast?
       rht = ensure_rvalue(rht);
 
-      obj->type.cate = Type::kLValue; // !
+      obj->type.cate = Type::kLValue;
       obj->type.specs = lft->type.specs;
       obj->type.texp = arrayType->sub;
     } break;
@@ -461,7 +461,7 @@ InferType::operator()(FunctionDecl* obj)
 Expr*
 InferType::ensure_rvalue(Expr* exp)
 {
-  if (exp->type.texp->dcast<ArrayType>()) {
+  if (exp->type.texp->dcast<ArrayType>() != nullptr) {
     auto& cst = make<ImplicitCastExpr>();
     cst.kind = cst.kArrayToPointerDecay;
 
@@ -631,6 +631,11 @@ InferType::assigment_cast(const Type& lft, Expr* rht)
 Expr*
 InferType::infer_init(Expr* init, const Type& to)
 {
+  //* 很显然，C语言的初始化语法设计得不好，它：
+  //*   既不方便用（只能在声明后面，而不能在任意表达式能出现的地方）；
+  //*   也不方便读（多维数组时很容易分不清结构，例如1和{{1}}是一样的）；
+  //*   还不方便实现！
+
   // https://zh.cppreference.com/w/c/language/scalar_initialization
   if (to.texp == nullptr) {
     if (auto p = init->dcast<ImplicitInitExpr>()) {
