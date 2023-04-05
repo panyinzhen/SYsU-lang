@@ -1,48 +1,10 @@
 {
   "inner": [
     {
-      "inner": [
-        {
-          "inner": [
-            {
-              "kind": "IntegerLiteral",
-              "type": { "qualType": "int" },
-              "value": "0",
-              "valueCategory": "pralue"
-            },
-            {
-              "kind": "IntegerLiteral",
-              "type": { "qualType": "int" },
-              "value": "1",
-              "valueCategory": "pralue"
-            },
-            {
-              "kind": "IntegerLiteral",
-              "type": { "qualType": "int" },
-              "value": "2",
-              "valueCategory": "pralue"
-            },
-            {
-              "kind": "IntegerLiteral",
-              "type": { "qualType": "int" },
-              "value": "3",
-              "valueCategory": "pralue"
-            },
-            {
-              "kind": "IntegerLiteral",
-              "type": { "qualType": "int" },
-              "value": "4",
-              "valueCategory": "pralue"
-            }
-          ],
-          "kind": "InitListExpr",
-          "type": { "qualType": "int[5]" },
-          "valueCategory": "pralue"
-        }
-      ],
+      "inner": [],
       "kind": "VarDecl",
       "name": "a",
-      "type": { "qualType": "const int[5]" }
+      "type": { "qualType": "int" }
     },
     {
       "inner": [
@@ -51,41 +13,85 @@
             {
               "inner": [
                 {
-                  "castKind": "NoOp",
+                  "kind": "DeclRefExpr",
+                  "type": { "qualType": "int" },
+                  "valueCategory": "lvalue"
+                },
+                {
+                  "kind": "IntegerLiteral",
+                  "type": { "qualType": "int" },
+                  "value": "10",
+                  "valueCategory": "pralue"
+                }
+              ],
+              "kind": "BinaryOperator",
+              "opcode": "=",
+              "type": { "qualType": "int" },
+              "valueCategory": "pralue"
+            },
+            {
+              "inner": [
+                {
+                  "inner": [
+                    {
+                      "castKind": "LValueToRValue",
+                      "inner": [
+                        {
+                          "kind": "DeclRefExpr",
+                          "type": { "qualType": "int" },
+                          "valueCategory": "lvalue"
+                        }
+                      ],
+                      "kind": "ImplicitCastExpr",
+                      "type": { "qualType": "int" },
+                      "valueCategory": "pralue"
+                    },
+                    {
+                      "kind": "IntegerLiteral",
+                      "type": { "qualType": "int" },
+                      "value": "0",
+                      "valueCategory": "pralue"
+                    }
+                  ],
+                  "kind": "BinaryOperator",
+                  "opcode": ">",
+                  "type": { "qualType": "int" },
+                  "valueCategory": "pralue"
+                },
+                {
                   "inner": [
                     {
                       "inner": [
                         {
-                          "castKind": "NoOp",
-                          "inner": [
-                            {
-                              "kind": "DeclRefExpr",
-                              "type": { "qualType": "const int[5]" },
-                              "valueCategory": "lvalue"
-                            }
-                          ],
-                          "kind": "ImplicitCastExpr",
-                          "type": { "qualType": "int[5]" },
-                          "valueCategory": "pralue"
-                        },
-                        {
                           "kind": "IntegerLiteral",
                           "type": { "qualType": "int" },
-                          "value": "4",
+                          "value": "1",
                           "valueCategory": "pralue"
                         }
                       ],
-                      "kind": "ArraySubscriptExpr",
-                      "type": { "qualType": "int" },
-                      "valueCategory": "lvalue"
+                      "kind": "ReturnStmt"
                     }
                   ],
-                  "kind": "ImplicitCastExpr",
-                  "type": { "qualType": "int" },
-                  "valueCategory": "pralue"
+                  "kind": "CompoundStmt"
+                },
+                {
+                  "inner": [
+                    {
+                      "inner": [
+                        {
+                          "kind": "IntegerLiteral",
+                          "type": { "qualType": "int" },
+                          "value": "0",
+                          "valueCategory": "pralue"
+                        }
+                      ],
+                      "kind": "ReturnStmt"
+                    }
+                  ],
+                  "kind": "CompoundStmt"
                 }
               ],
-              "kind": "ReturnStmt"
+              "kind": "IfStmt"
             }
           ],
           "kind": "CompoundStmt"

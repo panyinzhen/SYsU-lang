@@ -211,8 +211,8 @@ EmitIR::operator()(CallExpr* obj)
   for (unsigned i = 0; i < obj->args.size(); ++i)
     args[i] = self(obj->args[i]);
 
-  return irb.CreateCall(
-    llvm::dyn_cast<llvm::FunctionType>(head->getType()), head, args);
+  auto func = llvm::dyn_cast<llvm::Function>(head);
+  return irb.CreateCall(func->getFunctionType(), func, args);
 }
 
 llvm::Value*
@@ -225,7 +225,6 @@ EmitIR::operator()(ImplicitCastExpr* obj)
     case ImplicitCastExpr::kLValueToRValue: {
       auto loadVal =
         irb.CreateLoad(sub->getType()->getPointerElementType(), sub);
-      loadVal->print(llvm::outs());
       return loadVal;
     }
 
@@ -235,11 +234,15 @@ EmitIR::operator()(ImplicitCastExpr* obj)
       return irb.CreateSExt(sub, self(obj->type));
 
     case ImplicitCastExpr::kArrayToPointerDecay:
-      return irb.CreateBitCast(
-        sub, sub->getType()->getArrayElementType()->getPointerTo());
+      return irb.CreateBitCast(sub,
+                               sub->getType()
+                                 ->getPointerElementType()
+                                 ->getArrayElementType()
+                                 ->getPointerTo());
 
     case ImplicitCastExpr::kFunctionToPointerDecay:
-      return irb.CreateBitCast(sub, sub->getType()->getPointerTo());
+      // return irb.CreateBitCast(sub, sub->getType()->getPointerTo());
+      return sub;
 
     case ImplicitCastExpr::kNoOp:
       return sub;
@@ -289,9 +292,15 @@ EmitIR::trans_init(llvm::Value* val, Expr* obj)
 
   if (auto p = obj->dcast<InitListExpr>()) {
     for (int i = 0; i < p->list.size(); ++i) {
-      auto ty = val->getType()->getArrayElementType(); // !
-      auto elemVal = irb.CreateGEP(
-        ty, val, llvm::ConstantInt::get(llvm::Type::getInt32Ty(_ctx), i));
+      auto ptrVal = irb.CreateBitCast(val,
+                                      val->getType()
+                                        ->getPointerElementType()
+                                        ->getArrayElementType()
+                                        ->getPointerTo());
+      auto elemVal =
+        irb.CreateGEP(ptrVal->getType()->getPointerElementType(),
+                      ptrVal,
+                      llvm::ConstantInt::get(llvm::Type::getInt32Ty(_ctx), i));
       trans_init(elemVal, p->list[i]);
     }
     return;
@@ -628,7 +637,7 @@ EmitIR::operator()(ReturnStmt* obj, llvm::BasicBlock* enter)
   }
 
   irb.CreateRet(retVal);
-  return enter;
+  return llvm::BasicBlock::Create(_ctx, "return_next", _curFunc);
 }
 
 //==============================================================================
@@ -651,7 +660,8 @@ void
 EmitIR::operator()(VarDecl* obj)
 {
   auto ty = self(obj->type);
-  auto init = trans_static_init(obj->init);
+  auto init = obj->init != nullptr ? trans_static_init(obj->init)
+                                   : llvm::ConstantAggregateZero::get(ty);
   auto gvar = new llvm::GlobalVariable(
     _mod, ty, false, llvm::GlobalVariable::ExternalLinkage, init, obj->name);
 
@@ -668,6 +678,9 @@ EmitIR::operator()(FunctionDecl* obj)
 
   obj->any = std::make_any<llvm::Value*>(func);
 
+  if (obj->body == nullptr)
+    return;
+
   // 设置参数
   auto bb = llvm::BasicBlock::Create(_ctx, "entry", func);
   llvm::IRBuilder<> irb(bb);
@@ -675,17 +688,19 @@ EmitIR::operator()(FunctionDecl* obj)
   auto argIter = func->arg_begin();
   for (auto&& param : obj->params) {
     auto val = irb.CreateAlloca(argIter->getType());
-    irb.CreateStore(val, argIter);
+    irb.CreateStore(argIter, val);
     param->any = std::make_any<llvm::Value*>(val);
 
-    argIter->setName(obj->name);
+    argIter->setName(param->name);
     ++argIter;
   }
 
   // 翻译函数体
-  if (obj->body != nullptr) {
-    _curFunc = func;
-    self(obj->body, bb);
+  _curFunc = func;
+  bb = self(obj->body, bb);
+  if (bb->empty()) {
+    llvm::IRBuilder<> irb(bb);
+    irb.CreateUnreachable();
   }
 }
 

@@ -1,5 +1,1 @@
-int
-foo(int* nums)
-{
-  return nums[10];
-}
+int a[3][3];

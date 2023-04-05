@@ -37,9 +37,11 @@ main(int argc, char* argv[])
   asg::InferType inferType;
   inferType(asg);
 
-  asg::Asg2Json asg2json;
-  llvm::json::Value json = asg2json(asg);
-  llvm::outs() << json << '\n';
+  if (argc > 2) {
+    asg::Asg2Json asg2json;
+    llvm::json::Value json = asg2json(asg);
+    llvm::outs() << json << '\n';
+  }
 
   asg::EmitIR generator;
   auto& mod = generator(asg);

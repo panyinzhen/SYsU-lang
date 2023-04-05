@@ -443,21 +443,27 @@ Asg2Json::operator()(ImplicitCastExpr* obj)
   switch (obj->kind) {
     case ImplicitCastExpr::kINVALID:
       ret["castKind"] = "INVALID";
+      break;
 
     case ImplicitCastExpr::kLValueToRValue:
       ret["castKind"] = "LValueToRValue";
+      break;
 
     case ImplicitCastExpr::kIntegralCast:
       ret["castKind"] = "IntegralCast";
+      break;
 
     case ImplicitCastExpr::kArrayToPointerDecay:
       ret["castKind"] = "ArrayToPointerDecay";
+      break;
 
     case ImplicitCastExpr::kFunctionToPointerDecay:
       ret["castKind"] = "FunctionToPointerDecay";
-      
+      break;
+
     case ImplicitCastExpr::kNoOp:
       ret["castKind"] = "NoOp";
+      break;
   }
 
   return ret;

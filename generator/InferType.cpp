@@ -248,6 +248,7 @@ InferType::operator()(CallExpr* obj)
   auto& f2p = make<ImplicitCastExpr>();
   f2p.kind = f2p.kFunctionToPointerDecay;
   f2p.type = obj->head->type;
+  f2p.type.cate = Type::kRValue;
   f2p.sub = obj->head;
   obj->head = &f2p;
 
