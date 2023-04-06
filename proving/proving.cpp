@@ -53,57 +53,26 @@ int
 main()
 {
   auto entryBB = BasicBlock::Create(gCtx, "entry", kMainFun);
-  llvm::IRBuilder<> entryIRB(entryBB);
+  llvm::IRBuilder<> irb0(entryBB);
+  llvm::IRBuilder<> irb1(entryBB);
+  llvm::IRBuilder<> irb2(entryBB);
 
-  auto condBB = BasicBlock::Create(gCtx, "cond", kMainFun);
-  llvm::IRBuilder<> condIRB(condBB);
+  irb0.CreateAlloca(kIntTy, nullptr, "0");
+  irb1.CreateAlloca(kIntTy, nullptr, "1");
+  auto p = irb2.CreateAlloca(kIntTy, nullptr, "2");
 
-  auto loopBB = BasicBlock::Create(gCtx, "loop", kMainFun);
-  llvm::IRBuilder<> loopIRB(loopBB);
+  llvm::IRBuilder<> irb3(entryBB);
+  llvm::IRBuilder<> irb4(entryBB);
+  llvm::IRBuilder<> irb5(entryBB);
 
-  auto retBB = BasicBlock::Create(gCtx, "ret", kMainFun);
-  llvm::IRBuilder<> retIRB(retBB);
+  irb5.SetInsertPoint(p);
+  irb3.CreateAlloca(kIntTy, nullptr, "3");
+  irb4.CreateAlloca(kIntTy, nullptr, "4");
+  irb5.CreateAlloca(kIntTy, nullptr, "5");
 
-  auto argIter = kMainFun->arg_begin();
-  auto argcVar = &*argIter, argvVar = &*++argIter;
-  argcVar->setName("argc"), argvVar->setName("argv");
+  irb0.CreateAlloca(kIntTy, nullptr, "6");
+  irb1.CreateAlloca(kIntTy, nullptr, "7");
+  irb2.CreateAlloca(kIntTy, nullptr, "8");
 
-  // entry
-  entryIRB.CreateBr(condBB);
-
-  // cond
-  auto iVar = condIRB.CreatePHI(kIntTy, 2, "i");
-  condIRB.CreateCondBr(condIRB.CreateICmpSLT(iVar, argcVar), loopBB, retBB);
-  iVar->addIncoming(ConstantInt::get(kIntTy, 0), entryBB);
-
-  // loop
-  auto fmtstrVar = loopIRB.CreateBitCast(kFmtstrVar, kCharPTy);
-  loopIRB.CreateCall(
-    kPrintfFun,
-    {
-      loopIRB.CreateGEP(
-        fmtstrVar->getType(), fmtstrVar, ConstantInt::get(kIntTy, 0)),
-      loopIRB.CreateLoad(kCharPTy, loopIRB.CreateGEP(kCharPTy, argvVar, iVar)),
-    });
-  iVar->addIncoming(loopIRB.CreateAdd(iVar, ConstantInt::get(kIntTy, 1)),
-                    loopBB);
-  loopIRB.CreateBr(condBB);
-
-  // ret
-  retIRB.CreateRet(ConstantInt::get(kIntTy, 0));
-
-  // int a[3] = {};
-  {
-    auto ty = ArrayType::get(ArrayType::get(kIntTy, 3), 3);
-    auto aVar = new llvm::GlobalVariable(gMod,
-                                         kCharTy,
-                                         false,
-                                         llvm::GlobalVariable::ExternalLinkage,
-                                         ConstantAggregateZero::get(ty));
-    }
-
-  gMod.print(llvm::outs(), nullptr);
-  llvm::outs() << '\n';
-  if (llvm::verifyModule(gMod, &llvm::outs()))
-    return -1;
+  entryBB->print(llvm::outs());
 }

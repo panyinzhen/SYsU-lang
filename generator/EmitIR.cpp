@@ -159,22 +159,26 @@ EmitIR::operator()(BinaryExpr* obj)
       return irb.CreateSub(lftVal, rhtVal);
 
     case BinaryExpr::kGt:
-      return irb.CreateICmpSGT(lftVal, rhtVal);
+      return irb.CreateSExt(irb.CreateICmpSGT(lftVal, rhtVal),
+                            irb.getInt32Ty());
 
     case BinaryExpr::kLt:
-      return irb.CreateICmpSLT(lftVal, rhtVal);
+      return irb.CreateSExt(irb.CreateICmpSLT(lftVal, rhtVal),
+                            irb.getInt32Ty());
 
     case BinaryExpr::kGe:
-      return irb.CreateICmpSGE(lftVal, rhtVal);
+      return irb.CreateSExt(irb.CreateICmpSGE(lftVal, rhtVal),
+                            irb.getInt32Ty());
 
     case BinaryExpr::kLe:
-      return irb.CreateICmpSLE(lftVal, rhtVal);
+      return irb.CreateSExt(irb.CreateICmpSLE(lftVal, rhtVal),
+                            irb.getInt32Ty());
 
     case BinaryExpr::kEq:
-      return irb.CreateICmpEQ(lftVal, rhtVal);
+      return irb.CreateSExt(irb.CreateICmpEQ(lftVal, rhtVal), irb.getInt32Ty());
 
     case BinaryExpr::kNe:
-      return irb.CreateICmpNE(lftVal, rhtVal);
+      return irb.CreateSExt(irb.CreateICmpNE(lftVal, rhtVal), irb.getInt32Ty());
 
     case BinaryExpr::kAnd:
       return irb.CreateAnd(lftVal, rhtVal);
@@ -526,7 +530,7 @@ EmitIR::operator()(IfStmt* obj, llvm::BasicBlock* enter)
 {
   llvm::IRBuilder<> irb(enter);
   _curIrb = &irb;
-  auto condVal = boolize_cond(self(obj->cond));
+  auto condVal = boolize(self(obj->cond));
 
   auto nextBb = llvm::BasicBlock::Create(_ctx, "if_next", _curFunc);
 
@@ -566,7 +570,7 @@ EmitIR::operator()(WhileStmt* obj, llvm::BasicBlock* enter)
 
   llvm::IRBuilder<> condIrb(condBb);
   _curIrb = &condIrb;
-  auto condVal = boolize_cond(self(obj->cond));
+  auto condVal = boolize(self(obj->cond));
   condIrb.CreateCondBr(condVal, loopBb, nextBb);
 
   llvm::IRBuilder<> loopIrb(self(obj->body, loopBb));
@@ -595,7 +599,7 @@ EmitIR::operator()(DoStmt* obj, llvm::BasicBlock* enter)
 
   llvm::IRBuilder<> condIrb(condBb);
   _curIrb = &condIrb;
-  auto condVal = boolize_cond(self(obj->cond));
+  auto condVal = boolize(self(obj->cond));
   condIrb.CreateCondBr(condVal, loopBb, nextBb);
 
   return nextBb;
@@ -683,25 +687,62 @@ EmitIR::operator()(FunctionDecl* obj)
 
   // 设置参数
   auto bb = llvm::BasicBlock::Create(_ctx, "entry", func);
-  llvm::IRBuilder<> irb(bb);
+  {
+    llvm::IRBuilder<> irb(bb);
+    auto argIter = func->arg_begin();
+    for (auto&& param : obj->params) {
+      auto val = irb.CreateAlloca(argIter->getType());
+      irb.CreateStore(argIter, val);
+      param->any = std::make_any<llvm::Value*>(val);
 
-  auto argIter = func->arg_begin();
-  for (auto&& param : obj->params) {
-    auto val = irb.CreateAlloca(argIter->getType());
-    irb.CreateStore(argIter, val);
-    param->any = std::make_any<llvm::Value*>(val);
-
-    argIter->setName(param->name);
-    ++argIter;
+      argIter->setName(param->name);
+      ++argIter;
+    }
   }
 
   // 翻译函数体
   _curFunc = func;
   bb = self(obj->body, bb);
-  if (bb->empty()) {
+  {
     llvm::IRBuilder<> irb(bb);
-    irb.CreateUnreachable();
+    if (fty->getReturnType()->isVoidTy())
+      irb.CreateRetVoid();
+    else if (bb->empty())
+      irb.CreateUnreachable();
   }
 }
 
+llvm::Value*
+EmitIR::boolize(llvm::Value* cond)
+{
+  // if (auto p = llvm::dyn_cast_or_null<llvm::IntegerType>(cond))
+  //   if (p->getBitWidth() == 1)
+  //     return cond;
+
+  auto& irb = *_curIrb;
+  return irb.CreateICmpNE(cond, llvm::ConstantInt::get(cond->getType(), 0));
 }
+
+}
+
+/**
+ * 若干关键点：
+ *
+ * 1. 左值翻译为 alloca 指令并传递指针
+ *
+ * 2. 表达式有短路求值的问题，因此一行表达式可能翻译为多个基本块
+ *
+ * 3. 全局变量初始化如何翻译
+ * 
+ *    clang 使用静态初始化方法，但我建议使用@llvm.global_ctors，这样可以复用一部分代码，
+ *    也可以支持非常量的初始化。
+ */
+
+/**
+ * 距离一个完整的 C 语言编译器还差：
+ *
+ * 1. 指针
+ * 2. 结构体
+ * 3. for 语句
+ * 4. 调整 ASG 结构（匹配clang）
+ */

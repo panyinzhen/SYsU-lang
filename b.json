@@ -1,5 +1,5 @@
 {
-  "id": "0x2275ec8",
+  "id": "0x1049b48",
   "kind": "TranslationUnitDecl",
   "loc": {},
   "range": {
@@ -8,7 +8,7 @@
   },
   "inner": [
     {
-      "id": "0x22766f0",
+      "id": "0x104a370",
       "kind": "TypedefDecl",
       "loc": {},
       "range": {
@@ -22,7 +22,7 @@
       },
       "inner": [
         {
-          "id": "0x2276490",
+          "id": "0x104a110",
           "kind": "BuiltinType",
           "type": {
             "qualType": "__int128"
@@ -31,7 +31,7 @@
       ]
     },
     {
-      "id": "0x2276760",
+      "id": "0x104a3e0",
       "kind": "TypedefDecl",
       "loc": {},
       "range": {
@@ -45,7 +45,7 @@
       },
       "inner": [
         {
-          "id": "0x22764b0",
+          "id": "0x104a130",
           "kind": "BuiltinType",
           "type": {
             "qualType": "unsigned __int128"
@@ -54,7 +54,7 @@
       ]
     },
     {
-      "id": "0x2276a68",
+      "id": "0x104a6e8",
       "kind": "TypedefDecl",
       "loc": {},
       "range": {
@@ -68,13 +68,13 @@
       },
       "inner": [
         {
-          "id": "0x2276840",
+          "id": "0x104a4c0",
           "kind": "RecordType",
           "type": {
             "qualType": "struct __NSConstantString_tag"
           },
           "decl": {
-            "id": "0x22767b8",
+            "id": "0x104a438",
             "kind": "RecordDecl",
             "name": "__NSConstantString_tag"
           }
@@ -82,7 +82,7 @@
       ]
     },
     {
-      "id": "0x2276b00",
+      "id": "0x104a780",
       "kind": "TypedefDecl",
       "loc": {},
       "range": {
@@ -96,14 +96,14 @@
       },
       "inner": [
         {
-          "id": "0x2276ac0",
+          "id": "0x104a740",
           "kind": "PointerType",
           "type": {
             "qualType": "char *"
           },
           "inner": [
             {
-              "id": "0x2275f70",
+              "id": "0x1049bf0",
               "kind": "BuiltinType",
               "type": {
                 "qualType": "char"
@@ -114,7 +114,7 @@
       ]
     },
     {
-      "id": "0x2276df8",
+      "id": "0x104aa78",
       "kind": "TypedefDecl",
       "loc": {},
       "range": {
@@ -128,7 +128,7 @@
       },
       "inner": [
         {
-          "id": "0x2276da0",
+          "id": "0x104aa20",
           "kind": "ConstantArrayType",
           "type": {
             "qualType": "struct __va_list_tag[1]"
@@ -136,13 +136,13 @@
           "size": 1,
           "inner": [
             {
-              "id": "0x2276be0",
+              "id": "0x104a860",
               "kind": "RecordType",
               "type": {
                 "qualType": "struct __va_list_tag"
               },
               "decl": {
-                "id": "0x2276b58",
+                "id": "0x104a7d8",
                 "kind": "RecordDecl",
                 "name": "__va_list_tag"
               }
@@ -152,185 +152,110 @@
       ]
     },
     {
-      "id": "0x22db7a0",
-      "kind": "VarDecl",
-      "loc": {
-        "offset": 4,
-        "file": "/root/SYsU-lang/tester/function_test2020/10_if_else.sysu.c",
-        "line": 1,
-        "col": 5,
-        "tokLen": 1
-      },
-      "range": {
-        "begin": {
-          "offset": 0,
-          "col": 1,
-          "tokLen": 3
-        },
-        "end": {
-          "offset": 4,
-          "col": 5,
-          "tokLen": 1
-        }
-      },
-      "isUsed": true,
-      "name": "a",
-      "mangledName": "a",
-      "type": {
-        "qualType": "int"
-      }
-    },
-    {
-      "id": "0x22db8a0",
+      "id": "0x10afc70",
       "kind": "FunctionDecl",
       "loc": {
-        "offset": 11,
-        "line": 2,
-        "col": 5,
-        "tokLen": 4
+        "offset": 1472,
+        "file": "a.c",
+        "line": 65,
+        "col": 1,
+        "tokLen": 3
       },
       "range": {
         "begin": {
-          "offset": 7,
+          "offset": 1468,
+          "line": 64,
           "col": 1,
           "tokLen": 3
         },
         "end": {
-          "offset": 77,
-          "line": 10,
+          "offset": 1502,
+          "line": 68,
           "col": 1,
           "tokLen": 1
         }
       },
-      "name": "main",
-      "mangledName": "main",
+      "name": "foo",
+      "mangledName": "foo",
       "type": {
-        "qualType": "int ()"
+        "qualType": "int (int *)"
       },
       "inner": [
         {
-          "id": "0x22dbad8",
+          "id": "0x10afb70",
+          "kind": "ParmVarDecl",
+          "loc": {
+            "offset": 1480,
+            "line": 65,
+            "col": 9,
+            "tokLen": 1
+          },
+          "range": {
+            "begin": {
+              "offset": 1476,
+              "col": 5,
+              "tokLen": 3
+            },
+            "end": {
+              "offset": 1482,
+              "col": 11,
+              "tokLen": 1
+            }
+          },
+          "isUsed": true,
+          "name": "a",
+          "type": {
+            "desugaredQualType": "int *",
+            "qualType": "int *"
+          }
+        },
+        {
+          "id": "0x10afe00",
           "kind": "CompoundStmt",
           "range": {
             "begin": {
-              "offset": 17,
-              "line": 2,
-              "col": 11,
+              "offset": 1485,
+              "line": 66,
+              "col": 1,
               "tokLen": 1
             },
             "end": {
-              "offset": 77,
-              "line": 10,
+              "offset": 1502,
+              "line": 68,
               "col": 1,
               "tokLen": 1
             }
           },
           "inner": [
             {
-              "id": "0x22db980",
-              "kind": "BinaryOperator",
+              "id": "0x10afdf0",
+              "kind": "ReturnStmt",
               "range": {
                 "begin": {
-                  "offset": 20,
-                  "line": 3,
-                  "col": 2,
-                  "tokLen": 1
+                  "offset": 1489,
+                  "line": 67,
+                  "col": 3,
+                  "tokLen": 6
                 },
                 "end": {
-                  "offset": 24,
-                  "col": 6,
-                  "tokLen": 2
-                }
-              },
-              "type": {
-                "qualType": "int"
-              },
-              "valueCategory": "prvalue",
-              "opcode": "=",
-              "inner": [
-                {
-                  "id": "0x22db940",
-                  "kind": "DeclRefExpr",
-                  "range": {
-                    "begin": {
-                      "offset": 20,
-                      "col": 2,
-                      "tokLen": 1
-                    },
-                    "end": {
-                      "offset": 20,
-                      "col": 2,
-                      "tokLen": 1
-                    }
-                  },
-                  "type": {
-                    "qualType": "int"
-                  },
-                  "valueCategory": "lvalue",
-                  "referencedDecl": {
-                    "id": "0x22db7a0",
-                    "kind": "VarDecl",
-                    "name": "a",
-                    "type": {
-                      "qualType": "int"
-                    }
-                  }
-                },
-                {
-                  "id": "0x22db960",
-                  "kind": "IntegerLiteral",
-                  "range": {
-                    "begin": {
-                      "offset": 24,
-                      "col": 6,
-                      "tokLen": 2
-                    },
-                    "end": {
-                      "offset": 24,
-                      "col": 6,
-                      "tokLen": 2
-                    }
-                  },
-                  "type": {
-                    "qualType": "int"
-                  },
-                  "valueCategory": "prvalue",
-                  "value": "10"
-                }
-              ]
-            },
-            {
-              "id": "0x22dbaa8",
-              "kind": "IfStmt",
-              "range": {
-                "begin": {
-                  "offset": 29,
-                  "line": 4,
-                  "col": 2,
-                  "tokLen": 2
-                },
-                "end": {
-                  "offset": 75,
-                  "line": 9,
-                  "col": 2,
+                  "offset": 1499,
+                  "col": 13,
                   "tokLen": 1
                 }
               },
-              "hasElse": true,
               "inner": [
                 {
-                  "id": "0x22db9f8",
-                  "kind": "BinaryOperator",
+                  "id": "0x10afdd8",
+                  "kind": "ImplicitCastExpr",
                   "range": {
                     "begin": {
-                      "offset": 33,
-                      "line": 4,
-                      "col": 6,
+                      "offset": 1496,
+                      "col": 10,
                       "tokLen": 1
                     },
                     "end": {
-                      "offset": 35,
-                      "col": 8,
+                      "offset": 1499,
+                      "col": 13,
                       "tokLen": 1
                     }
                   },
@@ -338,188 +263,94 @@
                     "qualType": "int"
                   },
                   "valueCategory": "prvalue",
-                  "opcode": ">",
+                  "castKind": "LValueToRValue",
                   "inner": [
                     {
-                      "id": "0x22db9e0",
-                      "kind": "ImplicitCastExpr",
+                      "id": "0x10afdb8",
+                      "kind": "ArraySubscriptExpr",
                       "range": {
                         "begin": {
-                          "offset": 33,
-                          "col": 6,
-                          "tokLen": 1
-                        },
-                        "end": {
-                          "offset": 33,
-                          "col": 6,
-                          "tokLen": 1
-                        }
-                      },
-                      "type": {
-                        "qualType": "int"
-                      },
-                      "valueCategory": "prvalue",
-                      "castKind": "LValueToRValue",
-                      "inner": [
-                        {
-                          "id": "0x22db9a0",
-                          "kind": "DeclRefExpr",
-                          "range": {
-                            "begin": {
-                              "offset": 33,
-                              "col": 6,
-                              "tokLen": 1
-                            },
-                            "end": {
-                              "offset": 33,
-                              "col": 6,
-                              "tokLen": 1
-                            }
-                          },
-                          "type": {
-                            "qualType": "int"
-                          },
-                          "valueCategory": "lvalue",
-                          "referencedDecl": {
-                            "id": "0x22db7a0",
-                            "kind": "VarDecl",
-                            "name": "a",
-                            "type": {
-                              "qualType": "int"
-                            }
-                          }
-                        }
-                      ]
-                    },
-                    {
-                      "id": "0x22db9c0",
-                      "kind": "IntegerLiteral",
-                      "range": {
-                        "begin": {
-                          "offset": 35,
-                          "col": 8,
-                          "tokLen": 1
-                        },
-                        "end": {
-                          "offset": 35,
-                          "col": 8,
-                          "tokLen": 1
-                        }
-                      },
-                      "type": {
-                        "qualType": "int"
-                      },
-                      "valueCategory": "prvalue",
-                      "value": "0"
-                    }
-                  ]
-                },
-                {
-                  "id": "0x22dba48",
-                  "kind": "CompoundStmt",
-                  "range": {
-                    "begin": {
-                      "offset": 38,
-                      "col": 11,
-                      "tokLen": 1
-                    },
-                    "end": {
-                      "offset": 53,
-                      "line": 6,
-                      "col": 2,
-                      "tokLen": 1
-                    }
-                  },
-                  "inner": [
-                    {
-                      "id": "0x22dba38",
-                      "kind": "ReturnStmt",
-                      "range": {
-                        "begin": {
-                          "offset": 42,
-                          "line": 5,
-                          "col": 3,
-                          "tokLen": 6
-                        },
-                        "end": {
-                          "offset": 49,
+                          "offset": 1496,
                           "col": 10,
                           "tokLen": 1
+                        },
+                        "end": {
+                          "offset": 1499,
+                          "col": 13,
+                          "tokLen": 1
                         }
                       },
+                      "type": {
+                        "qualType": "int"
+                      },
+                      "valueCategory": "lvalue",
                       "inner": [
                         {
-                          "id": "0x22dba18",
-                          "kind": "IntegerLiteral",
+                          "id": "0x10afda0",
+                          "kind": "ImplicitCastExpr",
                           "range": {
                             "begin": {
-                              "offset": 49,
+                              "offset": 1496,
                               "col": 10,
                               "tokLen": 1
                             },
                             "end": {
-                              "offset": 49,
+                              "offset": 1496,
                               "col": 10,
                               "tokLen": 1
                             }
                           },
                           "type": {
-                            "qualType": "int"
+                            "desugaredQualType": "int *",
+                            "qualType": "int *"
                           },
                           "valueCategory": "prvalue",
-                          "value": "1"
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "id": "0x22dba90",
-                  "kind": "CompoundStmt",
-                  "range": {
-                    "begin": {
-                      "offset": 60,
-                      "line": 7,
-                      "col": 6,
-                      "tokLen": 1
-                    },
-                    "end": {
-                      "offset": 75,
-                      "line": 9,
-                      "col": 2,
-                      "tokLen": 1
-                    }
-                  },
-                  "inner": [
-                    {
-                      "id": "0x22dba80",
-                      "kind": "ReturnStmt",
-                      "range": {
-                        "begin": {
-                          "offset": 64,
-                          "line": 8,
-                          "col": 3,
-                          "tokLen": 6
+                          "castKind": "LValueToRValue",
+                          "inner": [
+                            {
+                              "id": "0x10afd60",
+                              "kind": "DeclRefExpr",
+                              "range": {
+                                "begin": {
+                                  "offset": 1496,
+                                  "col": 10,
+                                  "tokLen": 1
+                                },
+                                "end": {
+                                  "offset": 1496,
+                                  "col": 10,
+                                  "tokLen": 1
+                                }
+                              },
+                              "type": {
+                                "desugaredQualType": "int *",
+                                "qualType": "int *"
+                              },
+                              "valueCategory": "lvalue",
+                              "referencedDecl": {
+                                "id": "0x10afb70",
+                                "kind": "ParmVarDecl",
+                                "name": "a",
+                                "type": {
+                                  "desugaredQualType": "int *",
+                                  "qualType": "int *"
+                                }
+                              }
+                            }
+                          ]
                         },
-                        "end": {
-                          "offset": 71,
-                          "col": 10,
-                          "tokLen": 1
-                        }
-                      },
-                      "inner": [
                         {
-                          "id": "0x22dba60",
+                          "id": "0x10afd80",
                           "kind": "IntegerLiteral",
                           "range": {
                             "begin": {
-                              "offset": 71,
-                              "col": 10,
+                              "offset": 1498,
+                              "col": 12,
                               "tokLen": 1
                             },
                             "end": {
-                              "offset": 71,
-                              "col": 10,
+                              "offset": 1498,
+                              "col": 12,
                               "tokLen": 1
                             }
                           },

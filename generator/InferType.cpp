@@ -218,7 +218,7 @@ InferType::operator()(BinaryExpr* obj)
           ASG_ABORT();
       }
 
-      lft = ensure_rvalue(lft); // 怎么输出的不是 ArrayToPointerCast?
+      lft = ensure_rvalue(lft);
       rht = ensure_rvalue(rht);
 
       obj->type.cate = Type::kLValue;
@@ -462,9 +462,13 @@ InferType::operator()(FunctionDecl* obj)
 Expr*
 InferType::ensure_rvalue(Expr* exp)
 {
-  if (exp->type.texp->dcast<ArrayType>() != nullptr) {
+  if (auto p = exp->type.texp->dcast<ArrayType>()) {
     auto& cst = make<ImplicitCastExpr>();
-    cst.kind = cst.kArrayToPointerDecay;
+
+    if (p->len == -1)
+      cst.kind = cst.kLValueToRValue;
+    else
+      cst.kind = cst.kArrayToPointerDecay;
 
     cst.type = exp->type;
     cst.type.cate = Type::kRValue;

@@ -1,83 +1,30 @@
 {
   "inner": [
     {
-      "inner": [],
-      "kind": "VarDecl",
-      "name": "a",
-      "type": { "qualType": "int" }
-    },
-    {
       "inner": [
+        { "kind": "ParmVarDecl", "name": "a" },
         {
           "inner": [
             {
               "inner": [
                 {
-                  "kind": "DeclRefExpr",
-                  "type": { "qualType": "int" },
-                  "valueCategory": "lvalue"
-                },
-                {
-                  "kind": "IntegerLiteral",
-                  "type": { "qualType": "int" },
-                  "value": "10",
-                  "valueCategory": "pralue"
-                }
-              ],
-              "kind": "BinaryOperator",
-              "opcode": "=",
-              "type": { "qualType": "int" },
-              "valueCategory": "pralue"
-            },
-            {
-              "inner": [
-                {
-                  "inner": [
-                    {
-                      "castKind": "LValueToRValue",
-                      "inner": [
-                        {
-                          "kind": "DeclRefExpr",
-                          "type": { "qualType": "int" },
-                          "valueCategory": "lvalue"
-                        }
-                      ],
-                      "kind": "ImplicitCastExpr",
-                      "type": { "qualType": "int" },
-                      "valueCategory": "pralue"
-                    },
-                    {
-                      "kind": "IntegerLiteral",
-                      "type": { "qualType": "int" },
-                      "value": "0",
-                      "valueCategory": "pralue"
-                    }
-                  ],
-                  "kind": "BinaryOperator",
-                  "opcode": ">",
-                  "type": { "qualType": "int" },
-                  "valueCategory": "pralue"
-                },
-                {
+                  "castKind": "LValueToRValue",
                   "inner": [
                     {
                       "inner": [
                         {
-                          "kind": "IntegerLiteral",
-                          "type": { "qualType": "int" },
-                          "value": "1",
+                          "castKind": "ArrayToPointerDecay",
+                          "inner": [
+                            {
+                              "kind": "DeclRefExpr",
+                              "type": { "qualType": "int[]" },
+                              "valueCategory": "lvalue"
+                            }
+                          ],
+                          "kind": "ImplicitCastExpr",
+                          "type": { "qualType": "int[]" },
                           "valueCategory": "pralue"
-                        }
-                      ],
-                      "kind": "ReturnStmt"
-                    }
-                  ],
-                  "kind": "CompoundStmt"
-                },
-                {
-                  "inner": [
-                    {
-                      "inner": [
+                        },
                         {
                           "kind": "IntegerLiteral",
                           "type": { "qualType": "int" },
@@ -85,21 +32,25 @@
                           "valueCategory": "pralue"
                         }
                       ],
-                      "kind": "ReturnStmt"
+                      "kind": "ArraySubscriptExpr",
+                      "type": { "qualType": "int" },
+                      "valueCategory": "lvalue"
                     }
                   ],
-                  "kind": "CompoundStmt"
+                  "kind": "ImplicitCastExpr",
+                  "type": { "qualType": "int" },
+                  "valueCategory": "pralue"
                 }
               ],
-              "kind": "IfStmt"
+              "kind": "ReturnStmt"
             }
           ],
           "kind": "CompoundStmt"
         }
       ],
       "kind": "FunctionDecl",
-      "name": "main",
-      "type": { "qualType": "int ()" }
+      "name": "foo",
+      "type": { "qualType": "int (int[])" }
     }
   ],
   "kind": "TranslationUnitDecl"

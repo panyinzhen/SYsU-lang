@@ -104,7 +104,7 @@ private:
   void operator()(FunctionDecl* obj);
 
 private:
-  llvm::Value* boolize_cond(llvm::Value* cond) { return cond; }
+  llvm::Value* boolize(llvm::Value* cond);
 };
 
 }
