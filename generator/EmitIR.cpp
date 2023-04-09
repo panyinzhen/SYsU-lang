@@ -109,7 +109,23 @@ EmitIR::operator()(IntegerLiteral* obj)
 llvm::Constant*
 EmitIR::operator()(StringLiteral* obj)
 {
-  return llvm::ConstantDataArray::getString(_ctx, obj->val);
+  auto p = obj->type.texp->dcast<ArrayType>();
+  if (!p)
+    ASG_ABORT();
+
+  auto size = obj->val.size();
+  obj->val.resize(p->len - 1);
+
+  auto val = new llvm::GlobalVariable(
+    _mod,
+    self(obj->type),
+    true,
+    llvm::GlobalVariable::PrivateLinkage,
+    llvm::ConstantDataArray::getString(_ctx, obj->val));
+
+  obj->val.resize(size);
+
+  return val;
 }
 
 llvm::Value*
@@ -329,7 +345,11 @@ EmitIR::trans_init(llvm::Value* val, Expr* obj)
   }
 
   auto initVal = self(obj);
-  irb.CreateStore(initVal, val);
+  if (auto p = obj->dcast<StringLiteral>())
+    irb.CreateStore(
+      irb.CreateLoad(val->getType()->getPointerElementType(), initVal), val);
+  else
+    irb.CreateStore(initVal, val);
 }
 
 llvm::Value*
@@ -410,8 +430,11 @@ EmitIR::operator()(ExprStmt* obj)
 void
 EmitIR::operator()(CompoundStmt* obj)
 {
+  auto sp =
+    _curIrb->CreateIntrinsic(llvm::Intrinsic::stacksave, {}, {}, nullptr, "sp");
   for (auto&& stmt : obj->subs)
     self(stmt);
+  _curIrb->CreateIntrinsic(llvm::Intrinsic::stackrestore, {}, { sp });
 }
 
 void
@@ -601,9 +624,10 @@ EmitIR::operator()(FunctionDecl* obj)
   _curFunc = func;
   self(obj->body);
   auto& exitIrb = *_curIrb;
+
   if (fty->getReturnType()->isVoidTy())
     exitIrb.CreateRetVoid();
-  else if (exitIrb.GetInsertBlock()->empty())
+  else
     exitIrb.CreateUnreachable();
 }
 
@@ -621,6 +645,8 @@ EmitIR::operator()(FunctionDecl* obj)
  * 4. 初始化表达式的规范化（语义分析）
  *
  * 5. 局部变量表达式直接零初始化
+ *
+ * 6. 反复调用 alloca 指令会重复消耗栈空间，要记得使用 stackrestore 释放！
  */
 
 /**

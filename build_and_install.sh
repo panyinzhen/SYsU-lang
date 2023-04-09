@@ -19,5 +19,5 @@ cmake --build $HOME/sysu/build -t install
   export LD_LIBRARY_PATH=$HOME/sysu/lib:$LD_LIBRARY_PATH &&
   # sysu-compiler --unittest=benchmark_generator_and_optimizer_1 "**/*.sysu.c" )
   # sysu-compiler --unittest=benchmark_generator_and_optimizer_1 "tester/functional/080_color.sysu.c" )
-  sysu-compiler --unittest=benchmark_generator_and_optimizer_1 "tester/h_functional/*.sysu.c" )
+  sysu-compiler --unittest=benchmark_generator_and_optimizer_1 "tester/mizuno_ai/*.sysu.c" )
   # clang -E -O0 /root/SYsU-lang/tester/function_test2020/13_and.sysu.c )
