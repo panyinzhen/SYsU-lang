@@ -1,43 +1,45 @@
-# 1 "/root/SYsU-lang/tester/functional/057_if_complex_expr.sysu.c"
-# 1 "<built-in>" 1
-# 1 "<built-in>" 3
-# 361 "<built-in>" 3
-# 1 "<command line>" 1
-# 1 "<built-in>" 2
-# 1 "/root/SYsU-lang/tester/functional/057_if_complex_expr.sysu.c" 2
-# 1 "/root/sysu/include/sysy/sylib.h" 1
-# 10 "/root/sysu/include/sysy/sylib.h"
-void _sysy_starttime(int lineno);
-void _sysy_stoptime(int lineno);
+int
+getint();
+void
+putint(int);
+void
+putch(int);
 
+int
+main()
+{
+  //   int i = 5;
+  //   while (i < 18) {
+  //     putint(i);
 
-int _sysy_getch();
-void _sysy_putch(int a);
+  //     int j = 0;
+  //     while (j < 18) {
+  //       int k = 0;
+  //       while (k < 18) {
+  //         int l = 0;
+  //         while (l < 18) {
+  //           int m = 0;
+  //           while (m < 18) {
+  //             int h = 0;
+  //             while (h < 7) {
+  //               h = h + 1;
+  //             }
+  //             m = m + 1;
+  //           }
+  //           l = l + 1;
+  //         }
+  //         k = k + 1;
+  //       }
+  //       j = j + 1;
+  //     }
+  //     i = i + 1;
+  //   }
 
-int _sysy_getint();
-void _sysy_putint(int a);
+  //   putint(233333);
 
-int _sysy_getarray(int a[]);
-void _sysy_putarray(int n, int a[]);
-# 2 "/root/SYsU-lang/tester/functional/057_if_complex_expr.sysu.c" 2
-
-int main () {
-    int a;
-    int b;
-    int c;
-    int d;
-    int result;
-    a = 5;
-    b = 5;
-    c = 1;
-    d = -2;
-    result = 2;
-    if ((d * 1 / 2) < 0 || (a - b) != 0 && (c + 3) % 2 != 0) {
-        _sysy_putint(result);
-    }
-    if ((d % 2 + 67) < 0 || (a - b) != 0 && (c + 2) % 2 != 0) {
-        result = 4;
-        _sysy_putint(result);
-    }
-    return 0;
+  int i = 0;
+  while (i < 100000) {
+    int j = 10;
+  }
+  return 0;
 }

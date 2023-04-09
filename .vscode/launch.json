@@ -32,6 +32,19 @@
       // "args": ["/root/SYsU-lang/tester/functional/038_continue.sysu.c"],
       // "args": ["/root/SYsU-lang/tester/functional/1081_jump_game.sysu.c"],
       "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "fuck",
+      "program": "${workspaceFolder}/a.out",
+      "args": ["<", "/root/SYsU-lang/080_color.in"],
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "PATH": "/root/sysu/bin",
+        "LIBRARY_PATH": "/root/sysu/lib",
+        "LD_LIBRARY_PATH": "/root/sysu/lib"
+      }
     }
   ]
 }

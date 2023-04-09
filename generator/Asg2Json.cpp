@@ -141,9 +141,6 @@ Asg2Json::operator()(Expr* obj)
   else if (auto p = obj->dcast<InitListExpr>())
     ret = std::move(self(p));
 
-  else if (auto p = obj->dcast<ImplicitInitExpr>())
-    ret = std::move(self(p));
-
   else if (auto p = obj->dcast<ImplicitCastExpr>())
     ret = std::move(self(p));
 
@@ -413,17 +410,6 @@ Asg2Json::operator()(InitListExpr* obj)
   for (auto&& i : obj->list)
     inner.push_back(self(i));
   ret["inner"] = std::move(inner);
-
-  return ret;
-}
-
-json::Object
-Asg2Json::operator()(ImplicitInitExpr* obj)
-{
-  json::Object ret;
-  WalkedGuard guard(self, obj);
-
-  ret["kind"] = "InitListExpr";
 
   return ret;
 }

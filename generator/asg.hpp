@@ -231,9 +231,6 @@ struct InitListExpr : public Expr
   std::vector<Expr*> list;
 };
 
-struct ImplicitInitExpr : public Expr
-{};
-
 struct ImplicitCastExpr : public Expr
 {
   enum

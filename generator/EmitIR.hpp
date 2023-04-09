@@ -58,8 +58,6 @@ private:
 
   llvm::Value* operator()(ImplicitCastExpr* obj);
 
-  llvm::Constant* operator()(ImplicitInitExpr* obj);
-
   void trans_init(llvm::Value* val, Expr* obj);
 
   llvm::Value* trans_bool(llvm::Value* cond);

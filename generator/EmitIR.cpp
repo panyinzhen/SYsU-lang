@@ -135,7 +135,10 @@ EmitIR::operator()(UnaryExpr* obj)
       return irb.CreateNeg(subVal);
 
     case UnaryExpr::kNot:
-      return irb.CreateNot(subVal);
+      // return irb.CreateNot(subVal);
+      return irb.CreateZExt(
+        irb.CreateICmpEQ(subVal, llvm::ConstantInt::get(subVal->getType(), 0)),
+        _intTy);
 
     default:
       ASG_ABORT();
@@ -212,22 +215,22 @@ EmitIR::operator()(BinaryExpr* obj)
       return irb.CreateSub(lftVal, rhtVal);
 
     case BinaryExpr::kGt:
-      return irb.CreateSExt(irb.CreateICmpSGT(lftVal, rhtVal), _intTy);
+      return irb.CreateZExt(irb.CreateICmpSGT(lftVal, rhtVal), _intTy);
 
     case BinaryExpr::kLt:
-      return irb.CreateSExt(irb.CreateICmpSLT(lftVal, rhtVal), _intTy);
+      return irb.CreateZExt(irb.CreateICmpSLT(lftVal, rhtVal), _intTy);
 
     case BinaryExpr::kGe:
-      return irb.CreateSExt(irb.CreateICmpSGE(lftVal, rhtVal), _intTy);
+      return irb.CreateZExt(irb.CreateICmpSGE(lftVal, rhtVal), _intTy);
 
     case BinaryExpr::kLe:
-      return irb.CreateSExt(irb.CreateICmpSLE(lftVal, rhtVal), _intTy);
+      return irb.CreateZExt(irb.CreateICmpSLE(lftVal, rhtVal), _intTy);
 
     case BinaryExpr::kEq:
-      return irb.CreateSExt(irb.CreateICmpEQ(lftVal, rhtVal), _intTy);
+      return irb.CreateZExt(irb.CreateICmpEQ(lftVal, rhtVal), _intTy);
 
     case BinaryExpr::kNe:
-      return irb.CreateSExt(irb.CreateICmpNE(lftVal, rhtVal), _intTy);
+      return irb.CreateZExt(irb.CreateICmpNE(lftVal, rhtVal), _intTy);
 
     case BinaryExpr::kAssign:
       irb.CreateStore(rhtVal, lftVal);
@@ -299,45 +302,16 @@ EmitIR::operator()(ImplicitCastExpr* obj)
   }
 }
 
-llvm::Constant*
-EmitIR::operator()(ImplicitInitExpr* obj)
-{
-  auto& type = obj->type;
-  if (type.texp == nullptr) {
-    llvm::Type* ty;
-    switch (type.specs.base) {
-      case Type::Specs::kChar:
-        ty = llvm::Type::getInt8Ty(_ctx);
-        break;
-
-      case Type::Specs::kInt:
-      case Type::Specs::kLong:
-        ty = llvm::Type::getInt32Ty(_ctx);
-        break;
-
-      case Type::Specs::kLongLong:
-        ty = llvm::Type::getInt64Ty(_ctx);
-        break;
-
-      default:
-        ASG_ABORT();
-    }
-    return llvm::ConstantInt::get(ty, 0);
-  }
-  return llvm::ConstantAggregateZero::get(self(type));
-}
-
 void
 EmitIR::trans_init(llvm::Value* val, Expr* obj)
 {
   auto& irb = *_curIrb;
 
-  if (auto p = obj->dcast<ImplicitInitExpr>()) {
-    irb.CreateStore(self(p), val);
-    return;
-  }
-
   if (auto p = obj->dcast<InitListExpr>()) {
+    irb.CreateStore(
+      llvm::ConstantAggregateZero::get(val->getType()->getPointerElementType()),
+      val);
+
     for (int i = 0; i < p->list.size(); ++i) {
       auto ptrVal = irb.CreateBitCast(val,
                                       val->getType()
@@ -350,6 +324,7 @@ EmitIR::trans_init(llvm::Value* val, Expr* obj)
                       llvm::ConstantInt::get(llvm::Type::getInt32Ty(_ctx), i));
       trans_init(elemVal, p->list[i]);
     }
+
     return;
   }
 
@@ -581,13 +556,12 @@ EmitIR::operator()(VarDecl* obj)
 
   obj->any = std::make_any<llvm::Value*>(gvar);
 
-  if (obj->init == nullptr) {
-    gvar->setInitializer(llvm::ConstantAggregateZero::get(ty));
+  gvar->setInitializer(llvm::ConstantAggregateZero::get(ty));
+  if (obj->init == nullptr)
     return;
-  }
 
   _curFunc = llvm::Function::Create(
-    _ctorTy, llvm::GlobalVariable::ExternalLinkage, "ctor_" + obj->name, _mod);
+    _ctorTy, llvm::GlobalVariable::PrivateLinkage, "ctor_" + obj->name, _mod);
   llvm::appendToGlobalCtors(_mod, _curFunc, 65535);
 
   auto entryBb = llvm::BasicBlock::Create(_ctx, "entry", _curFunc);
@@ -642,9 +616,11 @@ EmitIR::operator()(FunctionDecl* obj)
  *
  * 2. 表达式有短路求值的问题，因此一行表达式可能翻译为多个基本块
  *
- * 3. 全局变量初始化如何翻译（编译时常量表达式求值）
+ * 3. 全局变量初始化如何翻译（编译时常量表达式求值 或 global_ctor）
  *
  * 4. 初始化表达式的规范化（语义分析）
+ *
+ * 5. 局部变量表达式直接零初始化
  */
 
 /**

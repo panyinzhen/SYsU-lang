@@ -641,38 +641,20 @@ InferType::infer_init(Expr* init, const Type& to)
   //*   也不方便读（多维数组时很容易分不清结构，例如1和{{1}}是一样的）；
   //*   还不方便实现！
 
-  // https://zh.cppreference.com/w/c/language/scalar_initialization
-  if (to.texp == nullptr) {
-    if (auto p = init->dcast<ImplicitInitExpr>()) {
-      p->type = to;
+  if (auto p = init->dcast<InitListExpr>()) {
+    if (p->list.empty())
       return p;
-    }
 
-    if (auto p = init->dcast<InitListExpr>()) {
-      if (!p->list.empty())
-        return infer_init(p->list[0], to);
-
-      auto& ret = make<ImplicitInitExpr>();
-      ret.type = to;
-      return &ret;
-    }
-
-    return assigment_cast(to, self(init));
+    auto begin = p->list.begin();
+    return infer_initlist(begin, p->list.end(), to);
   }
+
+  // https://zh.cppreference.com/w/c/language/scalar_initialization
+  if (to.texp == nullptr)
+    return assigment_cast(to, self(init));
 
   // https://zh.cppreference.com/w/c/language/array_initialization
   if (auto arrType = to.texp->dcast<ArrayType>()) {
-    if (auto p = init->dcast<ImplicitInitExpr>()) {
-      p->type = to;
-      return p;
-    }
-
-    // 从花括号环绕列表初始化
-    if (auto initList = init->dcast<InitListExpr>()) {
-      auto [ret, _] = infer_initlist(initList->list, 0, to);
-      return ret;
-    }
-
     // 从字符串初始化
     if (to.specs.base == Type::Specs::kChar) {
       init = self(init);
@@ -695,18 +677,13 @@ InferType::infer_init(Expr* init, const Type& to)
   ASG_ABORT();
 }
 
-std::pair<Expr*, std::size_t>
-InferType::infer_initlist(const std::vector<Expr*>& list,
-                          std::size_t begin,
-                          const Type& to)
+Expr*
+InferType::infer_initlist(InitListIter& begin, InitListIter end, const Type& to)
 {
-  if (to.texp == nullptr) {
-    if (begin == list.size())
-      return { nullptr, begin };
+  assert(begin != end);
 
-    auto ret = infer_init(list[begin], to);
-    return { ret, begin + 1 };
-  }
+  if (to.texp == nullptr)
+    return infer_init(*begin++, to);
 
   if (auto arrType = to.texp->dcast<ArrayType>()) {
     auto& ret = make<InitListExpr>();
@@ -721,25 +698,41 @@ InferType::infer_initlist(const std::vector<Expr*>& list,
 
     if (arrType->len == -1) {
       arrType->len = 0;
-      while (begin < list.size()) {
-        auto [expr, next] = infer_initlist(list, begin, subType);
-        ret.list.push_back(expr);
-        begin = next;
+      do {
+        if (auto p = (*begin)->dcast<InitListExpr>()) {
+          auto subBegin = p->list.begin();
+          ret.list.push_back(
+            p->list.empty() ? p
+                            : infer_initlist(subBegin, p->list.end(), subType));
+          ++begin;
+        }
+
+        else
+          ret.list.push_back(infer_initlist(begin, end, subType));
+
         ++arrType->len;
-      }
+      } while (begin != end);
     }
 
     else {
       for (int i = 0; i < arrType->len; ++i) {
-        if (begin == list.size())
+        if (begin == end)
           break;
-        auto [expr, next] = infer_initlist(list, begin, subType);
-        ret.list.push_back(expr);
-        begin = next;
+
+        if (auto p = (*begin)->dcast<InitListExpr>()) {
+          auto subBegin = p->list.begin();
+          ret.list.push_back(
+            p->list.empty() ? p
+                            : infer_initlist(subBegin, p->list.end(), subType));
+          ++begin;
+        }
+
+        else
+          ret.list.push_back(infer_initlist(begin, end, subType));
       }
     }
 
-    return { &ret, begin };
+    return &ret;
   }
 
   ASG_ABORT();

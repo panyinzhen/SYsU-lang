@@ -65,10 +65,6 @@ public:
   void operator()(FunctionDecl* obj);
 
 private:
-  Obj::Mgr& _mgr;
-  std::unordered_set<Obj*> _walked;
-
-private:
   struct WalkedGuard
   {
     InferType& _;
@@ -85,6 +81,12 @@ private:
 
     ~WalkedGuard() { _._walked.erase(_obj); }
   };
+
+  using InitListIter = std::vector<Expr*>::iterator;
+
+private:
+  Obj::Mgr& _mgr;
+  std::unordered_set<Obj*> _walked;
 
 private:
   template<typename T, typename... Args>
@@ -106,9 +108,7 @@ private:
   Expr* infer_init(Expr* init, const Type& to);
 
   // 推断列表初始化的类型，返回构造的初始化表达式和用到了第几个初始化元素
-  std::pair<Expr*, std::size_t> infer_initlist(const std::vector<Expr*>& list,
-                                               std::size_t begin,
-                                               const Type& to);
+  Expr* infer_initlist(InitListIter& begin, InitListIter end, const Type& to);
 };
 
 }

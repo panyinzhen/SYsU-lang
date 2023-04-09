@@ -291,14 +291,14 @@ def main(*argv):
 
                 def get_tm(sp):
                     val = -1
-                    matchObj = re.findall(
-                        b"TOTAL: (\\d*)H-(\\d*)M-(\\d*)S-(\\d*)us", sp.stderr
-                    )
-                    matchObj = matchObj[-1]
-                    val = int(matchObj[0])
-                    val = val * 60 + int(matchObj[1])
-                    val = val * 60 + int(matchObj[2])
-                    val = val * 1000000 + int(matchObj[3])
+                    # matchObj = re.findall(
+                    #     b"TOTAL: (\\d*)H-(\\d*)M-(\\d*)S-(\\d*)us", sp.stderr
+                    # )
+                    # matchObj = matchObj[-1]
+                    # val = int(matchObj[0])
+                    # val = val * 60 + int(matchObj[1])
+                    # val = val * 60 + int(matchObj[2])
+                    # val = val * 1000000 + int(matchObj[3])
                     return val
 
                 sysu = [
