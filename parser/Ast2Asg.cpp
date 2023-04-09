@@ -5,7 +5,7 @@
 namespace asg {
 
 Decl*
-Ast2Asg::LocalDecls::resolve(const std::string& name)
+Ast2Asg::Symtbl::resolve(const std::string& name)
 {
   auto iter = find(name);
   if (iter != end())
@@ -21,7 +21,7 @@ Ast2Asg::operator()(ast::TranslationUnitContext* ctx)
   if (ctx == nullptr)
     return ret;
 
-  LocalDecls localDecls(self);
+  Symtbl localDecls(self);
 
   for (auto&& i : ctx->externalDeclaration()) {
     if (auto p = i->declaration()) {
@@ -633,7 +633,7 @@ Ast2Asg::operator()(ast::PrimaryExpressionContext* ctx)
   if (auto p = ctx->Identifier()) {
     auto name = p->getText();
     auto& ret = make<DeclRefExpr>();
-    ret.decl = _localDecls->resolve(name);
+    ret.decl = _symtbl->resolve(name);
     return &ret;
   }
 
@@ -786,7 +786,7 @@ Ast2Asg::operator()(ast::CompoundStatementContext* ctx)
   auto& ret = make<CompoundStmt>();
 
   if (auto p = ctx->blockItemList()) {
-    LocalDecls localDecls(self);
+    Symtbl localDecls(self);
 
     for (auto&& i : p->blockItem()) {
       if (auto q = i->declaration()) {
@@ -927,7 +927,7 @@ Ast2Asg::operator()(ast::FunctionDefinitionContext* ctx)
   ret.type.texp = &funcType;
   ret.name = std::move(name);
 
-  LocalDecls localDecls(self);
+  Symtbl localDecls(self);
   if (auto p = ctx->parameterTypeList()) {
     for (auto&& i : p->parameterList()->parameterDeclaration()) {
       auto varDecl = self(i);
@@ -939,7 +939,7 @@ Ast2Asg::operator()(ast::FunctionDefinitionContext* ctx)
   }
 
   // 函数定义在签名之后就加入符号表，以允许递归调用
-  (*_localDecls)[ret.name] = &ret;
+  (*_symtbl)[ret.name] = &ret;
 
   ret.body = self(ctx->compoundStatement());
 
@@ -981,7 +981,7 @@ Ast2Asg::operator()(ast::InitDeclaratorContext* ctx, Type::Specs specs)
   }
 
   // 这个实现允许符号重复定义，新定义会取代旧定义
-  (*_localDecls)[ret->name] = ret;
+  (*_symtbl)[ret->name] = ret;
   return ret;
 }
 

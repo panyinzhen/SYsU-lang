@@ -5,6 +5,14 @@
 
 namespace asg {
 
+EmitIR::EmitIR(llvm::LLVMContext& ctx, llvm::StringRef mid)
+  : _mod(mid, ctx)
+  , _ctx(ctx)
+  , _intTy(llvm::Type::getInt32Ty(ctx))
+  , _ctorTy(llvm::FunctionType::get(llvm::Type::getVoidTy(ctx), false))
+{
+}
+
 llvm::Module&
 EmitIR::operator()(const asg::TranslationUnit& tu)
 {
@@ -137,11 +145,56 @@ EmitIR::operator()(UnaryExpr* obj)
 llvm::Value*
 EmitIR::operator()(BinaryExpr* obj)
 {
+  llvm::Value *lftVal, *rhtVal;
+
+  lftVal = self(obj->lft);
+
+  // 逻辑运算要进行短路求值
+  switch (obj->op) {
+    case BinaryExpr::kAnd: {
+      auto lftBb = _curIrb->GetInsertBlock();
+      auto rhtBb = llvm::BasicBlock::Create(_ctx, "and_rht", _curFunc);
+      auto exitBb = llvm::BasicBlock::Create(_ctx, "and_exit", _curFunc);
+
+      _curIrb->CreateCondBr(trans_bool(lftVal), rhtBb, exitBb);
+
+      _curIrb = std::make_unique<llvm::IRBuilder<>>(rhtBb);
+      rhtVal = self(obj->rht);
+      _curIrb->CreateBr(exitBb);
+      rhtBb = _curIrb->GetInsertBlock();
+
+      _curIrb = std::make_unique<llvm::IRBuilder<>>(exitBb);
+      auto phi = _curIrb->CreatePHI(_intTy, 2, "and_ans");
+      phi->addIncoming(llvm::ConstantInt::get(_intTy, 0), lftBb);
+      phi->addIncoming(rhtVal, rhtBb);
+      return phi;
+    }
+
+    case BinaryExpr::kOr: {
+      auto lftBb = _curIrb->GetInsertBlock();
+      auto rhtBb = llvm::BasicBlock::Create(_ctx, "or_rht", _curFunc);
+      auto exitBb = llvm::BasicBlock::Create(_ctx, "or_exit", _curFunc);
+
+      _curIrb->CreateCondBr(trans_bool(lftVal), exitBb, rhtBb);
+
+      _curIrb = std::make_unique<llvm::IRBuilder<>>(rhtBb);
+      rhtVal = self(obj->rht);
+      _curIrb->CreateBr(exitBb);
+      rhtBb = _curIrb->GetInsertBlock();
+
+      _curIrb = std::make_unique<llvm::IRBuilder<>>(exitBb);
+      auto phi = _curIrb->CreatePHI(_intTy, 2, "or_ans");
+      phi->addIncoming(llvm::ConstantInt::get(_intTy, 1), lftBb);
+      phi->addIncoming(rhtVal, rhtBb);
+      return phi;
+    }
+
+    default:
+      break;
+  }
+
   auto& irb = *_curIrb;
-
-  auto lftVal = self(obj->lft);
-  auto rhtVal = self(obj->rht);
-
+  rhtVal = self(obj->rht);
   switch (obj->op) {
     case BinaryExpr::kMul:
       return irb.CreateMul(lftVal, rhtVal);
@@ -159,32 +212,22 @@ EmitIR::operator()(BinaryExpr* obj)
       return irb.CreateSub(lftVal, rhtVal);
 
     case BinaryExpr::kGt:
-      return irb.CreateSExt(irb.CreateICmpSGT(lftVal, rhtVal),
-                            irb.getInt32Ty());
+      return irb.CreateSExt(irb.CreateICmpSGT(lftVal, rhtVal), _intTy);
 
     case BinaryExpr::kLt:
-      return irb.CreateSExt(irb.CreateICmpSLT(lftVal, rhtVal),
-                            irb.getInt32Ty());
+      return irb.CreateSExt(irb.CreateICmpSLT(lftVal, rhtVal), _intTy);
 
     case BinaryExpr::kGe:
-      return irb.CreateSExt(irb.CreateICmpSGE(lftVal, rhtVal),
-                            irb.getInt32Ty());
+      return irb.CreateSExt(irb.CreateICmpSGE(lftVal, rhtVal), _intTy);
 
     case BinaryExpr::kLe:
-      return irb.CreateSExt(irb.CreateICmpSLE(lftVal, rhtVal),
-                            irb.getInt32Ty());
+      return irb.CreateSExt(irb.CreateICmpSLE(lftVal, rhtVal), _intTy);
 
     case BinaryExpr::kEq:
-      return irb.CreateSExt(irb.CreateICmpEQ(lftVal, rhtVal), irb.getInt32Ty());
+      return irb.CreateSExt(irb.CreateICmpEQ(lftVal, rhtVal), _intTy);
 
     case BinaryExpr::kNe:
-      return irb.CreateSExt(irb.CreateICmpNE(lftVal, rhtVal), irb.getInt32Ty());
-
-    case BinaryExpr::kAnd:
-      return irb.CreateAnd(lftVal, rhtVal);
-
-    case BinaryExpr::kOr:
-      return irb.CreateOr(lftVal, rhtVal);
+      return irb.CreateSExt(irb.CreateICmpNE(lftVal, rhtVal), _intTy);
 
     case BinaryExpr::kAssign:
       irb.CreateStore(rhtVal, lftVal);
@@ -314,182 +357,61 @@ EmitIR::trans_init(llvm::Value* val, Expr* obj)
   irb.CreateStore(initVal, val);
 }
 
-llvm::Constant*
-EmitIR::trans_static_init(Expr* obj)
+llvm::Value*
+EmitIR::trans_bool(llvm::Value* cond)
 {
-  // https://zh.cppreference.com/w/c/language/constant_expression
+  // if (auto p = llvm::dyn_cast_or_null<llvm::IntegerType>(cond))
+  //   if (p->getBitWidth() == 1)
+  //     return cond;
 
-  if (auto p = obj->dcast<IntegerLiteral>())
-    return self(p);
-
-  if (auto p = obj->dcast<StringLiteral>())
-    return llvm::ConstantDataArray::getString(_ctx, p->val);
-
-  if (auto p = obj->dcast<UnaryExpr>()) {
-    auto sub = llvm::dyn_cast<llvm::ConstantInt>(trans_static_init(p->sub));
-    if (sub == nullptr)
-      ASG_ABORT();
-
-    switch (p->op) {
-      case UnaryExpr::kPos:
-        return sub;
-
-      case UnaryExpr::kNeg:
-        return llvm::ConstantInt::get(sub->getType(), -sub->getValue());
-
-      case UnaryExpr::kNot:
-        return llvm::ConstantInt::get(sub->getType(), !sub->getValue());
-
-      default:
-        ASG_ABORT();
-    }
-  }
-
-  if (auto p = obj->dcast<BinaryExpr>()) {
-    auto lft = llvm::dyn_cast<llvm::ConstantInt>(trans_static_init(p->lft));
-    auto rht = llvm::dyn_cast<llvm::ConstantInt>(trans_static_init(p->rht));
-    if (lft == nullptr || rht == nullptr)
-      ASG_ABORT();
-
-    switch (p->op) {
-      case BinaryExpr::kMul:
-        return llvm::ConstantInt::get(lft->getType(),
-                                      lft->getValue() * rht->getValue());
-
-      case BinaryExpr::kDiv: // C99 开始定义为向 0 方向截断
-        return llvm::ConstantInt::get(lft->getType(),
-                                      lft->getValue().sdiv(rht->getValue()));
-
-      case BinaryExpr::kMod:
-        return llvm::ConstantInt::get(lft->getType(),
-                                      lft->getValue().srem(rht->getValue()));
-
-      case BinaryExpr::kAdd:
-        return llvm::ConstantInt::get(lft->getType(),
-                                      lft->getValue() + rht->getValue());
-
-      case BinaryExpr::kSub:
-        return llvm::ConstantInt::get(lft->getType(),
-                                      lft->getValue() - rht->getValue());
-
-      case BinaryExpr::kGt:
-        return llvm::ConstantInt::get(lft->getType(),
-                                      lft->getValue().sgt(rht->getValue()));
-
-      case BinaryExpr::kLt:
-        return llvm::ConstantInt::get(lft->getType(),
-                                      lft->getValue().slt(rht->getValue()));
-
-      case BinaryExpr::kGe:
-        return llvm::ConstantInt::get(lft->getType(),
-                                      lft->getValue().sge(rht->getValue()));
-
-      case BinaryExpr::kLe:
-        return llvm::ConstantInt::get(lft->getType(),
-                                      lft->getValue().sle(rht->getValue()));
-
-      case BinaryExpr::kEq:
-        return llvm::ConstantInt::get(lft->getType(),
-                                      lft->getValue() == rht->getValue());
-
-      case BinaryExpr::kNe:
-        return llvm::ConstantInt::get(lft->getType(),
-                                      lft->getValue() != rht->getValue());
-
-      case BinaryExpr::kAnd:
-        return llvm::ConstantInt::get(lft->getType(),
-                                      !lft->getValue().isZero() &&
-                                        !rht->getValue().isZero());
-
-      case BinaryExpr::kOr:
-        return llvm::ConstantInt::get(lft->getType(),
-                                      !lft->getValue().isZero() ||
-                                        !rht->getValue().isZero());
-
-      default:
-        ASG_ABORT();
-    }
-  }
-
-  if (auto p = obj->dcast<InitListExpr>()) {
-    auto ty = llvm::dyn_cast<llvm::ArrayType>(self(p->type));
-    std::vector<llvm::Constant*> list;
-    for (auto&& i : p->list)
-      list.push_back(trans_static_init(i));
-    return llvm::ConstantArray::get(ty, std::move(list));
-  }
-
-  if (auto p = obj->dcast<ImplicitInitExpr>())
-    return self(p);
-
-  if (auto p = obj->dcast<ImplicitCastExpr>()) {
-    auto sub = trans_static_init(p->sub);
-
-    switch (p->kind) {
-      case ImplicitCastExpr::kLValueToRValue:
-      case ImplicitCastExpr::kNoOp:
-        return sub;
-
-      case ImplicitCastExpr::kIntegralCast: {
-        auto ity = llvm::dyn_cast<llvm::ConstantInt>(sub);
-        return llvm::ConstantInt::get(self(p->type), ity->getValue());
-      }
-
-        // case ImplicitCastExpr::kArrayToPointerDecay:
-        // case ImplicitCastExpr::kFunctionToPointerDecay:
-
-      default:
-        ASG_ABORT();
-    }
-  }
-
-  ASG_ABORT();
+  return _curIrb->CreateICmpNE(cond,
+                               llvm::ConstantInt::get(cond->getType(), 0));
 }
 
 //==============================================================================
 // 语句
 //==============================================================================
 
-llvm::BasicBlock*
-EmitIR::operator()(Stmt* obj, llvm::BasicBlock* enter)
+void
+EmitIR::operator()(Stmt* obj)
 {
   if (auto p = obj->dcast<NullStmt>())
-    return enter;
+    return;
 
   if (auto p = obj->dcast<DeclStmt>())
-    return self(p, enter);
+    return self(p);
 
   if (auto p = obj->dcast<ExprStmt>())
-    return self(p, enter);
+    return self(p);
 
   if (auto p = obj->dcast<CompoundStmt>())
-    return self(p, enter);
+    return self(p);
 
   if (auto p = obj->dcast<IfStmt>())
-    return self(p, enter);
+    return self(p);
 
   if (auto p = obj->dcast<WhileStmt>())
-    return self(p, enter);
+    return self(p);
 
   if (auto p = obj->dcast<DoStmt>())
-    return self(p, enter);
+    return self(p);
 
   if (auto p = obj->dcast<BreakStmt>())
-    return self(p, enter);
+    return self(p);
 
   if (auto p = obj->dcast<ContinueStmt>())
-    return self(p, enter);
+    return self(p);
 
   if (auto p = obj->dcast<ReturnStmt>())
-    return self(p, enter);
+    return self(p);
 
   ASG_ABORT();
 }
 
-llvm::BasicBlock*
-EmitIR::operator()(DeclStmt* obj, llvm::BasicBlock* enter)
+void
+EmitIR::operator()(DeclStmt* obj)
 {
-  llvm::IRBuilder<> irb(enter);
+  auto& irb = *_curIrb;
 
   for (auto&& decl : obj->decls) {
     auto p = decl->dcast<VarDecl>();
@@ -499,149 +421,139 @@ EmitIR::operator()(DeclStmt* obj, llvm::BasicBlock* enter)
     auto val = irb.CreateAlloca(self(p->type), nullptr, decl->name);
     decl->any = std::make_any<llvm::Value*>(val);
 
-    if (p->init != nullptr) {
-      _curIrb = &irb;
+    if (p->init != nullptr)
       trans_init(val, p->init);
-    }
   }
-
-  return enter;
 }
 
-llvm::BasicBlock*
-EmitIR::operator()(ExprStmt* obj, llvm::BasicBlock* enter)
+void
+EmitIR::operator()(ExprStmt* obj)
 {
-  llvm::IRBuilder<> irb(enter);
-  _curIrb = &irb;
   self(obj->expr);
-  return enter;
 }
 
-llvm::BasicBlock*
-EmitIR::operator()(CompoundStmt* obj, llvm::BasicBlock* enter)
+void
+EmitIR::operator()(CompoundStmt* obj)
 {
   for (auto&& stmt : obj->subs)
-    enter = self(stmt, enter);
-  return enter;
+    self(stmt);
 }
 
-llvm::BasicBlock*
-EmitIR::operator()(IfStmt* obj, llvm::BasicBlock* enter)
+void
+EmitIR::operator()(IfStmt* obj)
 {
-  llvm::IRBuilder<> irb(enter);
-  _curIrb = &irb;
-  auto condVal = boolize(self(obj->cond));
+  auto condVal = trans_bool(self(obj->cond));
+  auto condIrb = std::move(_curIrb);
 
-  auto nextBb = llvm::BasicBlock::Create(_ctx, "if_next", _curFunc);
+  auto exitBb = llvm::BasicBlock::Create(_ctx, "if_exit", _curFunc);
 
   auto thenBb = llvm::BasicBlock::Create(_ctx, "if_then", _curFunc);
-  llvm::IRBuilder<> thenIrb(self(obj->then, thenBb));
-  thenIrb.CreateBr(nextBb);
+  _curIrb = std::make_unique<llvm::IRBuilder<>>(thenBb);
+  self(obj->then);
+  _curIrb->CreateBr(exitBb);
 
   if (obj->else_ == nullptr)
-    irb.CreateCondBr(condVal, thenBb, nextBb);
+    condIrb->CreateCondBr(condVal, thenBb, exitBb);
 
   else {
     auto elseBb = llvm::BasicBlock::Create(_ctx, "if_else", _curFunc);
-    elseBb = self(obj->else_, elseBb);
-    llvm::IRBuilder<> elseIrb(elseBb);
-    elseIrb.CreateBr(nextBb);
+    _curIrb = std::make_unique<llvm::IRBuilder<>>(elseBb);
+    self(obj->else_);
+    _curIrb->CreateBr(exitBb);
 
-    irb.CreateCondBr(condVal, thenBb, elseBb);
+    condIrb->CreateCondBr(condVal, thenBb, elseBb);
   }
 
-  return nextBb;
+  _curIrb = std::make_unique<llvm::IRBuilder<>>(exitBb);
 }
 
-llvm::BasicBlock*
-EmitIR::operator()(WhileStmt* obj, llvm::BasicBlock* enter)
+void
+EmitIR::operator()(WhileStmt* obj)
 {
   auto condBb = llvm::BasicBlock::Create(_ctx, "while_cond", _curFunc);
   auto loopBb = llvm::BasicBlock::Create(_ctx, "while_loop", _curFunc);
-  auto nextBb = llvm::BasicBlock::Create(_ctx, "while_next", _curFunc);
+  auto exitBb = llvm::BasicBlock::Create(_ctx, "while_exit", _curFunc);
 
   LoopAny loopAny;
   loopAny.continue_ = condBb;
-  loopAny.break_ = nextBb;
+  loopAny.break_ = exitBb;
   obj->any = loopAny;
 
-  llvm::IRBuilder<> irb(enter);
-  irb.CreateBr(condBb);
+  _curIrb->CreateBr(condBb);
 
-  llvm::IRBuilder<> condIrb(condBb);
-  _curIrb = &condIrb;
-  auto condVal = boolize(self(obj->cond));
-  condIrb.CreateCondBr(condVal, loopBb, nextBb);
+  _curIrb = std::make_unique<llvm::IRBuilder<>>(condBb);
+  auto condVal = trans_bool(self(obj->cond));
+  _curIrb->CreateCondBr(condVal, loopBb, exitBb);
 
-  llvm::IRBuilder<> loopIrb(self(obj->body, loopBb));
-  loopIrb.CreateBr(condBb);
+  _curIrb = std::make_unique<llvm::IRBuilder<>>(loopBb);
+  self(obj->body);
+  _curIrb->CreateBr(condBb);
 
-  return nextBb;
+  _curIrb = std::make_unique<llvm::IRBuilder<>>(exitBb);
 }
 
-llvm::BasicBlock*
-EmitIR::operator()(DoStmt* obj, llvm::BasicBlock* enter)
+void
+EmitIR::operator()(DoStmt* obj)
 {
   auto loopBb = llvm::BasicBlock::Create(_ctx, "do_loop", _curFunc);
   auto condBb = llvm::BasicBlock::Create(_ctx, "do_cond", _curFunc);
-  auto nextBb = llvm::BasicBlock::Create(_ctx, "do_next", _curFunc);
+  auto exitBb = llvm::BasicBlock::Create(_ctx, "do_exit", _curFunc);
 
   LoopAny loopAny;
   loopAny.continue_ = condBb;
-  loopAny.break_ = nextBb;
+  loopAny.break_ = exitBb;
   obj->any = loopAny;
 
-  llvm::IRBuilder<> irb(enter);
-  irb.CreateBr(loopBb);
+  _curIrb->CreateBr(condBb);
 
-  llvm::IRBuilder<> loopIrb(self(obj->body, loopBb));
-  loopIrb.CreateBr(condBb);
+  _curIrb = std::make_unique<llvm::IRBuilder<>>(loopBb);
+  self(obj->body);
+  _curIrb->CreateBr(condBb);
 
-  llvm::IRBuilder<> condIrb(condBb);
-  _curIrb = &condIrb;
-  auto condVal = boolize(self(obj->cond));
-  condIrb.CreateCondBr(condVal, loopBb, nextBb);
+  _curIrb = std::make_unique<llvm::IRBuilder<>>(condBb);
+  auto condVal = trans_bool(self(obj->cond));
+  _curIrb->CreateCondBr(condVal, loopBb, exitBb);
 
-  return nextBb;
+  _curIrb = std::make_unique<llvm::IRBuilder<>>(exitBb);
 }
 
-llvm::BasicBlock*
-EmitIR::operator()(BreakStmt* obj, llvm::BasicBlock* enter)
+void
+EmitIR::operator()(BreakStmt* obj)
 {
   auto& loopAny = std::any_cast<LoopAny&>(obj->loop->any);
 
-  llvm::IRBuilder<> irb(enter);
-  irb.CreateBr(loopAny.break_);
+  _curIrb->CreateBr(loopAny.break_);
 
-  return llvm::BasicBlock::Create(_ctx, "break_next", _curFunc);
+  auto exitBb = llvm::BasicBlock::Create(_ctx, "break_exit", _curFunc);
+  _curIrb = std::make_unique<llvm::IRBuilder<>>(exitBb);
 }
 
-llvm::BasicBlock*
-EmitIR::operator()(ContinueStmt* obj, llvm::BasicBlock* enter)
+void
+EmitIR::operator()(ContinueStmt* obj)
 {
   auto& loopAny = std::any_cast<LoopAny&>(obj->loop->any);
 
-  llvm::IRBuilder<> irb(enter);
-  irb.CreateBr(loopAny.continue_);
+  _curIrb->CreateBr(loopAny.continue_);
 
-  return llvm::BasicBlock::Create(_ctx, "continue_next", _curFunc);
+  auto exitBb = llvm::BasicBlock::Create(_ctx, "continue_exit", _curFunc);
+  _curIrb = std::make_unique<llvm::IRBuilder<>>(exitBb);
 }
 
-llvm::BasicBlock*
-EmitIR::operator()(ReturnStmt* obj, llvm::BasicBlock* enter)
+void
+EmitIR::operator()(ReturnStmt* obj)
 {
-  llvm::IRBuilder<> irb(enter);
+  auto& irb = *_curIrb;
 
   llvm::Value* retVal;
   if (!obj->expr)
     retVal = nullptr;
-  else {
-    _curIrb = &irb;
+  else
     retVal = self(obj->expr);
-  }
 
-  irb.CreateRet(retVal);
-  return llvm::BasicBlock::Create(_ctx, "return_next", _curFunc);
+  _curIrb->CreateRet(retVal);
+
+  auto exitBb = llvm::BasicBlock::Create(_ctx, "return_exit", _curFunc);
+  _curIrb = std::make_unique<llvm::IRBuilder<>>(exitBb);
 }
 
 //==============================================================================
@@ -664,12 +576,24 @@ void
 EmitIR::operator()(VarDecl* obj)
 {
   auto ty = self(obj->type);
-  auto init = obj->init != nullptr ? trans_static_init(obj->init)
-                                   : llvm::ConstantAggregateZero::get(ty);
   auto gvar = new llvm::GlobalVariable(
-    _mod, ty, false, llvm::GlobalVariable::ExternalLinkage, init, obj->name);
+    _mod, ty, false, llvm::GlobalVariable::ExternalLinkage, nullptr, obj->name);
 
   obj->any = std::make_any<llvm::Value*>(gvar);
+
+  if (obj->init == nullptr) {
+    gvar->setInitializer(llvm::ConstantAggregateZero::get(ty));
+    return;
+  }
+
+  _curFunc = llvm::Function::Create(
+    _ctorTy, llvm::GlobalVariable::ExternalLinkage, "ctor_" + obj->name, _mod);
+  llvm::appendToGlobalCtors(_mod, _curFunc, 65535);
+
+  auto entryBb = llvm::BasicBlock::Create(_ctx, "entry", _curFunc);
+  _curIrb = std::make_unique<llvm::IRBuilder<>>(entryBb);
+  trans_init(gvar, obj->init);
+  _curIrb->CreateRet(nullptr);
 }
 
 void
@@ -684,43 +608,29 @@ EmitIR::operator()(FunctionDecl* obj)
 
   if (obj->body == nullptr)
     return;
+  auto entryBb = llvm::BasicBlock::Create(_ctx, "entry", func);
+  _curIrb = std::make_unique<llvm::IRBuilder<>>(entryBb);
+  auto& entryIrb = *_curIrb;
 
   // 设置参数
-  auto bb = llvm::BasicBlock::Create(_ctx, "entry", func);
-  {
-    llvm::IRBuilder<> irb(bb);
-    auto argIter = func->arg_begin();
-    for (auto&& param : obj->params) {
-      auto val = irb.CreateAlloca(argIter->getType());
-      irb.CreateStore(argIter, val);
-      param->any = std::make_any<llvm::Value*>(val);
+  auto argIter = func->arg_begin();
+  for (auto&& param : obj->params) {
+    auto val = entryIrb.CreateAlloca(argIter->getType());
+    entryIrb.CreateStore(argIter, val);
+    param->any = std::make_any<llvm::Value*>(val);
 
-      argIter->setName(param->name);
-      ++argIter;
-    }
+    argIter->setName(param->name);
+    ++argIter;
   }
 
   // 翻译函数体
   _curFunc = func;
-  bb = self(obj->body, bb);
-  {
-    llvm::IRBuilder<> irb(bb);
-    if (fty->getReturnType()->isVoidTy())
-      irb.CreateRetVoid();
-    else if (bb->empty())
-      irb.CreateUnreachable();
-  }
-}
-
-llvm::Value*
-EmitIR::boolize(llvm::Value* cond)
-{
-  // if (auto p = llvm::dyn_cast_or_null<llvm::IntegerType>(cond))
-  //   if (p->getBitWidth() == 1)
-  //     return cond;
-
-  auto& irb = *_curIrb;
-  return irb.CreateICmpNE(cond, llvm::ConstantInt::get(cond->getType(), 0));
+  self(obj->body);
+  auto& exitIrb = *_curIrb;
+  if (fty->getReturnType()->isVoidTy())
+    exitIrb.CreateRetVoid();
+  else if (exitIrb.GetInsertBlock()->empty())
+    exitIrb.CreateUnreachable();
 }
 
 }
@@ -732,10 +642,9 @@ EmitIR::boolize(llvm::Value* cond)
  *
  * 2. 表达式有短路求值的问题，因此一行表达式可能翻译为多个基本块
  *
- * 3. 全局变量初始化如何翻译
- * 
- *    clang 使用静态初始化方法，但我建议使用@llvm.global_ctors，这样可以复用一部分代码，
- *    也可以支持非常量的初始化。
+ * 3. 全局变量初始化如何翻译（编译时常量表达式求值）
+ *
+ * 4. 初始化表达式的规范化（语义分析）
  */
 
 /**

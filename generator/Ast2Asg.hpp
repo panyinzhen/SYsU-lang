@@ -11,30 +11,31 @@ using ast = antlr_c::CParser;
 class Ast2Asg
 {
 public:
-  Obj::Mgr _mgr;
+  Ast2Asg(Obj::Mgr& mgr)
+    : _mgr(mgr)
+  {
+  }
 
 public:
   TranslationUnit operator()(ast::TranslationUnitContext* ctx);
 
 private:
-  struct LocalDecls : public std::unordered_map<std::string, Decl*>
+  struct Symtbl : public std::unordered_map<std::string, Decl*>
   {
     Ast2Asg& _self;
-    LocalDecls* _prev;
+    Symtbl* _prev;
 
-    LocalDecls(Ast2Asg& self)
+    Symtbl(Ast2Asg& self)
       : _self(self)
-      , _prev(self._localDecls)
+      , _prev(self._symtbl)
     {
-      _self._localDecls = this;
+      _self._symtbl = this;
     }
 
-    ~LocalDecls() { _self._localDecls = _prev; }
+    ~Symtbl() { _self._symtbl = _prev; }
 
     Decl* resolve(const std::string& name);
   };
-
-  LocalDecls* _localDecls{ nullptr };
 
   struct CurrentLoop
   {
@@ -51,8 +52,10 @@ private:
     ~CurrentLoop() { _self._currentLoop = _prev; }
   };
 
+private:
+  Obj::Mgr& _mgr;
+  Symtbl* _symtbl{ nullptr };
   Stmt* _currentLoop{ nullptr };
-
   FunctionDecl* _currentFunc{ nullptr };
 
 private:

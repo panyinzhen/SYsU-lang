@@ -17,24 +17,24 @@ public:
   TranslationUnit operator()(ast::TranslationUnitContext* ctx);
 
 private:
-  struct LocalDecls : public std::unordered_map<std::string, Decl*>
+  struct Symtbl : public std::unordered_map<std::string, Decl*>
   {
     Ast2Asg& _self;
-    LocalDecls* _prev;
+    Symtbl* _prev;
 
-    LocalDecls(Ast2Asg& self)
+    Symtbl(Ast2Asg& self)
       : _self(self)
-      , _prev(self._localDecls)
+      , _prev(self._symtbl)
     {
-      _self._localDecls = this;
+      _self._symtbl = this;
     }
 
-    ~LocalDecls() { _self._localDecls = _prev; }
+    ~Symtbl() { _self._symtbl = _prev; }
 
     Decl* resolve(const std::string& name);
   };
 
-  LocalDecls* _localDecls{ nullptr };
+  Symtbl* _symtbl{ nullptr };
 
   struct CurrentLoop
   {

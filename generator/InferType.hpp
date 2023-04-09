@@ -8,7 +8,10 @@ namespace asg {
 class InferType
 {
 public:
-  Obj::Mgr _mgr;
+  InferType(Obj::Mgr& mgr)
+    : _mgr(mgr)
+  {
+  }
 
 public:
   void operator()(TranslationUnit& tu);
@@ -62,6 +65,7 @@ public:
   void operator()(FunctionDecl* obj);
 
 private:
+  Obj::Mgr& _mgr;
   std::unordered_set<Obj*> _walked;
 
 private:
@@ -98,7 +102,7 @@ private:
   // 转换 rht 到 lft
   Expr* assigment_cast(const Type& lft, Expr* rht);
 
-  // 推断初始化表达式的类型
+  // 推断初始化表达式的类型，这会去除重复和冗余并重组表达式的结构，将其规范化
   Expr* infer_init(Expr* init, const Type& to);
 
   // 推断列表初始化的类型，返回构造的初始化表达式和用到了第几个初始化元素

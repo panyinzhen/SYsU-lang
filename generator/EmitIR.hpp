@@ -8,15 +8,10 @@ namespace asg {
 class EmitIR
 {
 public:
-  llvm::LLVMContext _ctx;
   llvm::Module _mod;
 
 public:
-  EmitIR()
-    : _ctx()
-    , _mod("-", _ctx)
-  {
-  }
+  EmitIR(llvm::LLVMContext& ctx, llvm::StringRef mid = "-");
 
 public:
   llvm::Module& operator()(const TranslationUnit& tu);
@@ -28,8 +23,13 @@ private:
   };
 
 private:
-  llvm::Function* _curFunc;   // 传参给编译语句
-  llvm::IRBuilder<>* _curIrb; // 传参给编译表达式
+  llvm::LLVMContext& _ctx;
+
+  llvm::Type* _intTy;
+  llvm::FunctionType* _ctorTy;
+
+  llvm::Function* _curFunc;
+  std::unique_ptr<llvm::IRBuilder<>> _curIrb;
 
 private:
   //============================================================================
@@ -62,36 +62,31 @@ private:
 
   void trans_init(llvm::Value* val, Expr* obj);
 
-  llvm::Constant* trans_static_init(Expr* obj);
+  llvm::Value* trans_bool(llvm::Value* cond);
 
   //============================================================================
   // 语句
   //============================================================================
 
-  /**
-   * @param obj 待翻译语句
-   * @param enter 空的入口块，翻译函数可以直接使用这个块
-   * @return 所有语句的翻译函数应该创建一个新的空出口块返回
-   */
-  llvm::BasicBlock* operator()(Stmt* obj, llvm::BasicBlock* enter);
+  void operator()(Stmt* obj);
 
-  llvm::BasicBlock* operator()(DeclStmt* obj, llvm::BasicBlock* enter);
+  void operator()(DeclStmt* obj);
 
-  llvm::BasicBlock* operator()(ExprStmt* obj, llvm::BasicBlock* enter);
+  void operator()(ExprStmt* obj);
 
-  llvm::BasicBlock* operator()(CompoundStmt* obj, llvm::BasicBlock* enter);
+  void operator()(CompoundStmt* obj);
 
-  llvm::BasicBlock* operator()(IfStmt* obj, llvm::BasicBlock* enter);
+  void operator()(IfStmt* obj);
 
-  llvm::BasicBlock* operator()(WhileStmt* obj, llvm::BasicBlock* enter);
+  void operator()(WhileStmt* obj);
 
-  llvm::BasicBlock* operator()(DoStmt* obj, llvm::BasicBlock* enter);
+  void operator()(DoStmt* obj);
 
-  llvm::BasicBlock* operator()(BreakStmt* obj, llvm::BasicBlock* enter);
+  void operator()(BreakStmt* obj);
 
-  llvm::BasicBlock* operator()(ContinueStmt* obj, llvm::BasicBlock* enter);
+  void operator()(ContinueStmt* obj);
 
-  llvm::BasicBlock* operator()(ReturnStmt* obj, llvm::BasicBlock* enter);
+  void operator()(ReturnStmt* obj);
 
   //============================================================================
   // 声明
@@ -102,9 +97,6 @@ private:
   void operator()(VarDecl* obj);
 
   void operator()(FunctionDecl* obj);
-
-private:
-  llvm::Value* boolize(llvm::Value* cond);
 };
 
 }

@@ -31,10 +31,12 @@ main(int argc, char* argv[])
   auto ast = parser.compilationUnit();
   // std::cout << ast->toStringTree(true) << std::endl;
 
-  asg::Ast2Asg ast2asg;
+  asg::Obj::Mgr mgr;
+
+  asg::Ast2Asg ast2asg(mgr);
   auto asg = ast2asg(ast->translationUnit());
 
-  asg::InferType inferType;
+  asg::InferType inferType(mgr);
   inferType(asg);
 
   if (argc > 2) {
@@ -43,8 +45,10 @@ main(int argc, char* argv[])
     llvm::outs() << json << '\n';
   }
 
-  asg::EmitIR generator;
-  auto& mod = generator(asg);
+  llvm::LLVMContext ctx;
+
+  asg::EmitIR emitIR(ctx);
+  auto& mod = emitIR(asg);
   mod.print(llvm::outs(), nullptr, false, true);
 
   llvm::outs() << '\n';
