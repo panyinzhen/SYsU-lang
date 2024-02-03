@@ -1,4 +1,4 @@
-grammar C;
+grammar SYsU_lang;
 
 
 primaryExpression

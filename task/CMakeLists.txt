@@ -5,6 +5,10 @@ find_package(antlr4-runtime 4.13)
 find_package(antlr4-generator 4.13)
 
 macro(add_task task)
+  if(NOT STUDENT_ID STREQUAL "" OR NOT STUDENT_NAME STREQUAL "")
+    configure_file(config-${task}.cmake.in
+                   ${CMAKE_CURRENT_SOURCE_DIR}/${task}/config.cmake @ONLY)
+  endif()
   add_subdirectory(${task})
 
   set(_student "${STUDENT_ID}-${STUDENT_NAME}")

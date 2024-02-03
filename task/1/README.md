@@ -46,7 +46,7 @@ eof ''          Loc=<test/cases/000_main.sysu.c:3:2>
 
 本次提供了两种方式来完成该实验：[基于 Flex](./flex)（默认）和[基于 ANTLR](./antlr)。
 
-你可以通过修改本目录中的 [`CMakeLists.txt`](./CMakeLists.txt) 来切换所使用的开发模板。
+你可以通过更改[实验设置](../../config.cmake)中的 `TASK1_WITH` 来切换所使用的开发模板。
 
 ## 运行测试
 
