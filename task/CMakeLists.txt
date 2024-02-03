@@ -1,0 +1,27 @@
+find_package(FLEX 2.6)
+find_package(BISON 3.8)
+
+find_package(antlr4-runtime 4.13)
+find_package(antlr4-generator 4.13)
+
+macro(add_task task)
+  add_subdirectory(${task})
+
+  set(_student "${STUDENT_ID}-${STUDENT_NAME}")
+  set(_out "${CMAKE_CURRENT_BINARY_DIR}/task${task}.${_student}.tar.xz")
+  set(_msg "作业已打包，请提交 '${_out}' 到评测服务器。")
+
+  add_custom_target(
+    task${task}-pack
+    COMMAND ${CMAKE_COMMAND} -E tar cvfJ ${_out}
+            ${CMAKE_CURRENT_SOURCE_DIR}/${task}
+    COMMAND echo ${_msg}
+    COMMAND echo ${_msg}
+    COMMAND echo ${_msg}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+endmacro()
+
+add_task(1)
+add_task(2)
+add_task(3)
+add_task(4)

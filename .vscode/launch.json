@@ -5,46 +5,13 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "type": "lldb",
+      "name": "(ctest) Launch",
+      "type": "cppdbg",
       "request": "launch",
-      "name": "sysu-parser",
-      "program": "/root/sysu/build/parser/sysu-parser",
-      "args": ["test.c"],
-      // "args": ["/root/SYsU-lang/tester/functional/1081_jump_game.sysu.c"],
-      "cwd": "${workspaceFolder}"
-    },
-    {
-      "type": "lldb",
-      "request": "launch",
-      "name": "proving",
-      "program": "/root/sysu/build/proving/proving",
-      "args": [],
-      "cwd": "${workspaceFolder}"
-    },
-    {
-      "type": "lldb",
-      "request": "launch",
-      "name": "sysu-generator",
-      "program": "/root/sysu/build/generator/sysu-generator",
-      // "args": ["/root/SYsU-lang/proving/exam6.c"],
-      // "args": ["/root/SYsU-lang/tester/function_test2020/10_if_else.sysu.c", "0"],
-      "args": ["/root/SYsU-lang/a.c"],
-      // "args": ["/root/SYsU-lang/tester/functional/038_continue.sysu.c"],
-      // "args": ["/root/SYsU-lang/tester/functional/1081_jump_game.sysu.c"],
-      "cwd": "${workspaceFolder}"
-    },
-    {
-      "type": "lldb",
-      "request": "launch",
-      "name": "fuck",
-      "program": "${workspaceFolder}/a.out",
-      "args": ["<", "/root/SYsU-lang/080_color.in"],
-      "cwd": "${workspaceFolder}",
-      "env": {
-        "PATH": "/root/sysu/bin",
-        "LIBRARY_PATH": "/root/sysu/lib",
-        "LD_LIBRARY_PATH": "/root/sysu/lib"
-      }
+      // Resolved by CMake Tools:
+      "cwd": "${cmake.testWorkingDirectory}",
+      "program": "${cmake.testProgram}",
+      "args": ["${cmake.testArgs}"]
     }
   ]
 }

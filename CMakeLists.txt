@@ -1,18 +1,17 @@
-# <https://github.com/llvm/llvm-project/blob/llvmorg-17.0.6/llvm/CMakeLists.txt>
-cmake_minimum_required(VERSION 3.20.0)
-project(SYsU-lang VERSION 2404.0.0.20240229)
-include(CPack)
-include(CTest)
-add_subdirectory(compiler)
-add_subdirectory(preprocessor)
-add_subdirectory(grammar)
-add_subdirectory(lexer)
-add_subdirectory(parser)
-add_subdirectory(generator)
-add_subdirectory(optimizer)
-add_subdirectory(translator)
-add_subdirectory(linker)
-add_subdirectory(librarian)
-add_subdirectory(tester)
+cmake_minimum_required(VERSION 3.20)
 
-add_subdirectory(proving)
+include(config.cmake)
+project(SYsU-lang VERSION 2.0.0.0 DESCRIPTION)
+include(CTest)
+
+# 语言标准
+set(CMAKE_C_STANDARD 17)
+set(CMAKE_C_STANDARD_REQUIRED TRUE)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
+
+# 任务
+add_subdirectory(task)
+
+# 评测
+add_subdirectory(test)
