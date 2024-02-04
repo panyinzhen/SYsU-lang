@@ -1,10 +1,11 @@
 set(_cases_dir ${CMAKE_CURRENT_SOURCE_DIR}/../cases)
+set(_rtlib_dir ${CMAKE_CURRENT_SOURCE_DIR}/../rtlib)
 
 # 生成实验一的全部答案
 add_custom_target(
   task1-answer
-  bash ${CMAKE_CURRENT_SOURCE_DIR}/answer.sh ${CLANG_EXECUTABLE} ${_cases_dir}
-  ${CMAKE_CURRENT_BINARY_DIR}
+  bash ${CMAKE_CURRENT_SOURCE_DIR}/answer.sh ${CLANG_EXECUTABLE} ${_rtlib_dir}
+  ${_cases_dir} ${CMAKE_CURRENT_BINARY_DIR}
   USES_TERMINAL
   SOURCES answer.sh)
 
@@ -18,7 +19,7 @@ foreach(_case ${_cases})
   set(_output_dir ${CMAKE_CURRENT_BINARY_DIR}/${_case})
   file(MAKE_DIRECTORY ${_output_dir})
   add_test(NAME test1/${_case} COMMAND task1 ${_cases_dir}/${_case}
-                                       ${_output_dir}/output)
+                                       ${_output_dir}/output.txt)
 endforeach()
 
 # 对实验一进行评分

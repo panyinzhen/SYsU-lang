@@ -104,33 +104,27 @@ struct Decl;
 
 struct Type
 {
-  enum Category
+  /// 说明（Specifier）
+  enum class Spec : std::uint8_t
   {
     kINVALID,
-    kRValue,
-    kLValue,
-  } cate{ kINVALID };
+    kVoid,
+    kChar,
+    kInt,
+    kLong,
+    kLongLong,
+  };
 
-  struct Specs
+  /// 限定（Qualifier）
+  enum class Qual : std::uint8_t
   {
-    enum
-    {
-      kINVALID,
-      kVoid,
-      kChar,
-      kInt,
-      kLong,
-      kLongLong,
-    };
+    kNone,
+    kConst,
+    kVolatile,
+  };
 
-    unsigned isConst : 1, base : 3;
-
-    Specs()
-      : isConst(false)
-      , base(kINVALID)
-    {
-    }
-  } specs;
+  Spec base{ Spec::kINVALID };
+  Qual qual{ Qual::kNone };
 
   TypeExpr* texp{ nullptr };
 };
@@ -140,9 +134,15 @@ struct TypeExpr : public Obj
   TypeExpr* sub{ nullptr };
 };
 
+struct PointerType : public TypeExpr
+{
+  Type::Qual qual{ Type::Qual::kNone };
+};
+
 struct ArrayType : public TypeExpr
 {
-  int len{ 0 }; /// 如果 len 为 -1 则表示不确定长度
+  std::uint32_t len{ 0 }; /// 数组长度，kUnLen 表示未知
+  static constexpr std::uint32_t kUnLen = UINT32_MAX;
 };
 
 struct FunctionType : public TypeExpr
@@ -159,6 +159,13 @@ struct Decl;
 struct Expr : public Obj
 {
   Type type;
+
+  enum Cate
+  {
+    kINVALID,
+    kRValue,
+    kLValue,
+  } cate{ kINVALID };
 
 protected:
   Expr() = default;
@@ -335,4 +342,4 @@ struct FunctionDecl : public Decl
 
 using TranslationUnit = std::vector<Decl*>;
 
-}
+} // namespace asg
