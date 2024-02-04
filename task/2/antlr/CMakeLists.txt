@@ -17,4 +17,4 @@ add_executable(task2 ${_src} ${ANTLR4_SRC_FILES_task2-antlr})
 target_include_directories(task2 PRIVATE . ${ANTLR4_INCLUDE_DIR}
                                          ${ANTLR4_INCLUDE_DIR_task2-antlr})
 
-target_link_libraries(task2 antlr4_static)
+target_link_libraries(task2 antlr4_static ${LLVM_LIBS})

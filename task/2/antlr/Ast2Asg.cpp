@@ -1016,4 +1016,4 @@ Ast2Asg::operator()(ast::ParameterDeclarationContext* ctx)
   return &ret;
 }
 
-}
+} // namespace asg

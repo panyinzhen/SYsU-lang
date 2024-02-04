@@ -325,4 +325,4 @@ struct FunctionDecl : public Decl
 
 using TranslationUnit = std::vector<Decl*>;
 
-}
+} // namespace asg

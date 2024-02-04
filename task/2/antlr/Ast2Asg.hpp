@@ -1,12 +1,12 @@
 #pragma once
 
-#include "CParser.h"
+#include "SYsU_langParser.h"
 #include "asg.hpp"
 #include <unordered_map>
 
 namespace asg {
 
-using ast = antlr_c::CParser;
+using ast = SYsU_langParser;
 
 class Ast2Asg
 {
@@ -140,4 +140,4 @@ private:
   }
 };
 
-}
+} // namespace asg

@@ -3,7 +3,7 @@ set(_cases_dir ${CMAKE_CURRENT_SOURCE_DIR}/../cases)
 # 生成实验一的全部答案
 add_custom_target(
   task1-answer
-  bash ${CMAKE_CURRENT_SOURCE_DIR}/answer.sh ${CLANG_PATH} ${_cases_dir}
+  bash ${CMAKE_CURRENT_SOURCE_DIR}/answer.sh ${CLANG_EXECUTABLE} ${_cases_dir}
   ${CMAKE_CURRENT_BINARY_DIR}
   USES_TERMINAL
   SOURCES answer.sh)

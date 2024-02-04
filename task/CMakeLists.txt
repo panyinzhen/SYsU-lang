@@ -4,6 +4,9 @@ find_package(BISON 3.8)
 find_package(antlr4-runtime 4.13)
 find_package(antlr4-generator 4.13)
 
+find_package(LLVM 17 REQUIRED)
+llvm_map_components_to_libnames(LLVM_LIBS core support transformutils)
+
 macro(add_task task)
   if(NOT STUDENT_ID STREQUAL "" OR NOT STUDENT_NAME STREQUAL "")
     configure_file(config-${task}.cmake.in
