@@ -14,7 +14,7 @@ antlr4_generate(
 file(GLOB _src *.cpp *.hpp *.c *.h)
 add_executable(task1 ${_src} ${ANTLR4_SRC_FILES_task1-antlr})
 
-target_include_directories(task1 PRIVATE . ${ANTLR4_INCLUDE_DIR}
-                                         ${ANTLR4_INCLUDE_DIR_task1-antlr})
+target_include_directories(task1 PRIVATE . ${ANTLR4_INCLUDE_DIR_task1-antlr})
+target_include_directories(task1 SYSTEM PRIVATE ${ANTLR4_INCLUDE_DIR})
 
 target_link_libraries(task1 antlr4_static)

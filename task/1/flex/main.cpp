@@ -79,6 +79,10 @@ main(int argc, char* argv[])
     return -3;
   }
 
+  std::cout << "程序 '" << argv[0] << std::endl;
+  std::cout << "输入 '" << argv[1] << std::endl;
+  std::cout << "输出 '" << argv[2] << std::endl;
+
   // 这个循环完成词法分析，yylex()中会调用print_token()，从而向
   // 输出文件中写入词法分析结果。
   while (yylex())

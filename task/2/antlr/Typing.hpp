@@ -3,15 +3,26 @@
 namespace asg {
 
 /**
- * @brief 在抽象语法图上自动推导并补全类型
+ * @brief 在抽象语法图上推导并补全类型
  */
-class InferType
+class Typing
 {
 public:
-  Obj::Mgr _mgr;
+  Obj::Mgr& mMgr;
 
-public:
+  Typing(Obj::Mgr& mgr)
+    : mMgr(mgr)
+  {
+  }
+
   void operator()(TranslationUnit& tu);
+
+private:
+  template<typename T, typename... Args>
+  T& make(Args... args)
+  {
+    return mMgr.make<T>(args...);
+  }
 
   //============================================================================
   // 表达式
@@ -67,50 +78,25 @@ public:
 
   void operator()(FunctionDecl* obj);
 
-private:
-  std::unordered_set<Obj*> _walked;
+  //==============================================================================
+  // 其它
+  //==============================================================================
 
-private:
-  struct WalkedGuard
-  {
-    InferType& _;
-    Obj* _obj;
-
-    WalkedGuard(InferType& _, Obj* obj)
-      : _(_)
-      , _obj(obj)
-    {
-      if (_._walked.find(obj) != _._walked.end())
-        ASG_ABORT();
-      _._walked.insert(obj);
-    }
-
-    ~WalkedGuard() { _._walked.erase(_obj); }
-  };
-
-private:
-  template<typename T, typename... Args>
-  T& make(Args... args)
-  {
-    return _mgr.make<T>(args...);
-  }
-
-private:
   Expr* ensure_rvalue(Expr* exp);
 
-  // 整数提升：https://zh.cppreference.com/w/c/language/conversion#%E6%95%B4%E6%95%B0%E6%8F%90%E5%8D%87
-  Expr* promote_integer(Expr* exp, int to = Type::Specs::kInt);
+  /// 整数提升：https://zh.cppreference.com/w/c/language/conversion#%E6%95%B4%E6%95%B0%E6%8F%90%E5%8D%87
+  Expr* promote_integer(Expr* exp, Type::Spec to = Type::Spec::kInt);
 
-  // 转换 rht 到 lft
-  Expr* assigment_cast(const Type& lft, Expr* rht);
+  /// 对于 \p lft = \p rht 的等式，转换 \p rht 的类型以适应 \p lft
+  Expr* assigment_cast(Expr* lft, Expr* rht);
 
-  // 推断初始化表达式的类型
+  /// 由被赋值类型 \p to 倒推初始化表达式 \p init 的类型
   Expr* infer_init(Expr* init, const Type& to);
 
-  // 推断列表初始化的类型，返回构造的初始化表达式和用到了第几个初始化元素
+  /// 倒退列表初始化的类型，返回构造的初始化表达式和用到了第几个初始化元素
   std::pair<Expr*, std::size_t> infer_initlist(const std::vector<Expr*>& list,
                                                std::size_t begin,
                                                const Type& to);
 };
 
-}
+} // namespace asg

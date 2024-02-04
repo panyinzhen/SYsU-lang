@@ -1,5 +1,7 @@
-set(_cases_dir ${CMAKE_CURRENT_SOURCE_DIR}/../cases)
-set(_rtlib_dir ${CMAKE_CURRENT_SOURCE_DIR}/../rtlib)
+file(REAL_PATH ../cases _cases_dir)
+file(REAL_PATH ../rtlib _rtlib_dir)
+file(REAL_PATH ../task0 _task0_out BASE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+file(REAL_PATH ../task1 _task1_out BASE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
 # 生成实验二的全部答案
 add_custom_target(
@@ -15,12 +17,26 @@ file(
   RELATIVE ${_cases_dir}
   ${_cases_dir}/*.sysu.c)
 
-foreach(_case ${_cases})
-  set(_output_dir ${CMAKE_CURRENT_BINARY_DIR}/${_case})
-  file(MAKE_DIRECTORY ${_output_dir})
-  add_test(NAME test2/${_case} COMMAND task2 ${_cases_dir}/${_case}
-                                       ${_output_dir}/output.json)
-endforeach()
+if(TASK2_REVIVE)
+  # 如果启用复活，则将前一个实验的标准答案作为输入
+  foreach(_case ${_cases})
+    set(_output_dir ${CMAKE_CURRENT_BINARY_DIR}/${_case})
+    file(MAKE_DIRECTORY ${_output_dir})
+    add_test(NAME test2/${_case}
+             COMMAND task2 ${_task1_dir}/${_case}/answer.txt
+                     ${_output_dir}/output.json)
+  endforeach()
+
+else()
+  # 否则以实验零的标准答案作为输入
+  foreach(_case ${_cases})
+    set(_output_dir ${CMAKE_CURRENT_BINARY_DIR}/${_case})
+    file(MAKE_DIRECTORY ${_output_dir})
+    add_test(NAME test2/${_case} COMMAND task2 ${_task0_out}/${_case}
+                                         ${_output_dir}/output.json)
+  endforeach()
+
+endif()
 
 # 对实验一进行评分
 add_custom_target(

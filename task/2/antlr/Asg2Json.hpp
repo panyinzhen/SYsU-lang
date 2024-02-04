@@ -1,6 +1,5 @@
 #include "asg.hpp"
 #include <llvm/Support/JSON.h>
-#include <unordered_set>
 
 namespace asg {
 
@@ -12,26 +11,6 @@ public:
   json::Object operator()(TranslationUnit& tu);
 
 private:
-  std::unordered_set<Obj*> _walked;
-
-private:
-  struct WalkedGuard
-  {
-    Asg2Json& _;
-    Obj* _obj;
-
-    WalkedGuard(Asg2Json& _, Obj* obj)
-      : _(_)
-      , _obj(obj)
-    {
-      if (_._walked.find(obj) != _._walked.end())
-        ASG_ABORT();
-      _._walked.insert(obj);
-    }
-
-    ~WalkedGuard() { _._walked.erase(_obj); }
-  };
-
   //============================================================================
   // 类型
   //============================================================================
@@ -101,4 +80,4 @@ private:
   json::Object operator()(FunctionDecl* obj);
 };
 
-}
+} // namespace asg

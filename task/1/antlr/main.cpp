@@ -1,5 +1,6 @@
 #include "SYsU_lang.h"
 #include <fstream>
+#include <iostream>
 
 int
 main(int argc, char* argv[])
@@ -20,6 +21,10 @@ main(int argc, char* argv[])
     std::cout << "Error: unable to open output file: " << argv[2] << '\n';
     return -3;
   }
+
+  std::cout << "程序 '" << argv[0] << std::endl;
+  std::cout << "输入 '" << argv[1] << std::endl;
+  std::cout << "输出 '" << argv[2] << std::endl;
 
   antlr4::ANTLRInputStream input(inFile);
   SYsU_lang lexer(&input);

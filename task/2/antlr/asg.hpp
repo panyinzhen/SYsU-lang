@@ -1,50 +1,22 @@
 #pragma once
 
+#include <any>
+#include <cstdio>
 #include <memory>
 #include <string>
-#include <unordered_set>
 #include <vector>
 
-namespace asg {
+/// 错误断言，打印文件和行号，方便定位问题。
+#define ASSERT(expr)                                                           \
+  ((expr) || (fprintf(stderr, "asserted at %s:%d\n", __FILE__, __LINE__),      \
+              abort(),                                                         \
+              false))
 
-#define ASG_ABORT()                                                            \
+/// 错误中断，打印文件和行号，方便定位问题。
+#define ABORT()                                                                \
   (fprintf(stderr, "aborted at %s:%d\n", __FILE__, __LINE__), abort())
 
-class Obj
-{
-public:
-  class Mgr : public std::vector<std::unique_ptr<Obj>>
-  {
-  public:
-    template<typename T, typename... Args>
-    T& make(Args... args)
-    {
-      auto ptr = std::make_unique<T>(args...);
-      auto& obj = *ptr;
-      emplace_back(std::move(ptr));
-      return obj;
-    }
-  };
-
-  template<typename... Ts>
-  class Ptr;
-
-public:
-  virtual ~Obj() = default;
-
-public:
-  template<typename T>
-  T* dcast()
-  {
-    return dynamic_cast<T*>(this);
-  }
-
-  template<typename T>
-  T& rcast()
-  {
-    return *reinterpret_cast<T*>(this);
-  }
-};
+namespace asg {
 
 template<bool...>
 struct bool_pack;
@@ -55,39 +27,92 @@ using all_true = std::is_same<bool_pack<true, v...>, bool_pack<v..., true>>;
 template<typename T, typename... Ts>
 using is_one_of = std::disjunction<std::is_same<T, Ts>...>;
 
-template<typename... Ts>
-class Obj::Ptr
+struct Obj
 {
-  static_assert(all_true<std::is_convertible_v<Ts*, Obj*>...>::value);
+  std::any any; /// 留给遍历器存放任意数据
 
-public:
-  Obj* _{ nullptr };
+  virtual ~Obj() = default;
 
-public:
-  Ptr() {}
-
-  Ptr(std::nullptr_t) {}
-
-  template<typename T, typename = std::enable_if_t<is_one_of<T, Ts...>::value>>
-  Ptr(T* p)
-    : _(p)
+  template<typename T>
+  T* dcst()
   {
+    return dynamic_cast<T*>(this);
   }
 
-  operator bool() { return _ != nullptr; }
-
-public:
-  template<typename T, typename = std::enable_if_t<is_one_of<T, Ts...>::value>>
-  T* dcast()
+  template<typename T>
+  T* scst()
   {
-    return dynamic_cast<T*>(_);
+    return static_cast<T*>(this);
   }
 
-  template<typename T, typename = std::enable_if_t<is_one_of<T, Ts...>::value>>
-  T& rcast()
+  template<typename T>
+  T& rcst()
   {
-    return *reinterpret_cast<T>(_);
+    return *reinterpret_cast<T*>(this);
   }
+
+  struct Mgr : public std::vector<std::unique_ptr<Obj>>
+  {
+    template<typename T, typename... Args>
+    T& make(Args... args)
+    {
+      auto ptr = std::make_unique<T>(args...);
+      auto& obj = *ptr;
+      emplace_back(std::move(ptr));
+      return obj;
+    }
+  };
+
+  /// 检查循环引用，防止无限递归。
+  struct Walked
+  {
+    Obj* mObj;
+
+    Walked(Obj* obj)
+      : mObj(obj)
+    {
+      ASSERT(!mObj->any.has_value());
+      mObj->any = nullptr;
+    }
+
+    ~Walked() { mObj->any.reset(); }
+  };
+
+  /// 有限泛型的指针模板类
+  template<typename... Ts>
+  struct Ptr
+  {
+    static_assert(all_true<std::is_convertible_v<Ts*, Obj*>...>::value);
+
+    Obj* mObj{ nullptr };
+
+    Ptr() {}
+
+    Ptr(std::nullptr_t) {}
+
+    template<typename T,
+             typename = std::enable_if_t<is_one_of<T, Ts...>::value>>
+    Ptr(T* p)
+      : mObj(p)
+    {
+    }
+
+    operator bool() { return mObj != nullptr; }
+
+    template<typename T,
+             typename = std::enable_if_t<is_one_of<T, Ts...>::value>>
+    T* dcst()
+    {
+      return dynamic_cast<T*>(mObj);
+    }
+
+    template<typename T,
+             typename = std::enable_if_t<is_one_of<T, Ts...>::value>>
+    T& rcst()
+    {
+      return *reinterpret_cast<T>(mObj);
+    }
+  };
 };
 
 //==============================================================================
@@ -100,33 +125,27 @@ struct Decl;
 
 struct Type
 {
-  enum Category
+  /// 说明（Specifier）
+  enum class Spec : std::uint8_t
   {
     kINVALID,
-    kRValue,
-    kLValue,
-  } cate{ kINVALID };
+    kVoid,
+    kChar,
+    kInt,
+    kLong,
+    kLongLong,
+  };
 
-  struct Specs
+  /// 限定（Qualifier）
+  enum class Qual : std::uint8_t
   {
-    enum
-    {
-      kINVALID,
-      kVoid,
-      kChar,
-      kInt,
-      kLong,
-      kLongLong,
-    };
+    kNone,
+    kConst,
+    // kVolatile,
+  };
 
-    unsigned isConst : 1, base : 3;
-
-    Specs()
-      : isConst(false)
-      , base(kINVALID)
-    {
-    }
-  } specs;
+  Spec spec{ Spec::kINVALID };
+  Qual qual{ Qual::kNone };
 
   TypeExpr* texp{ nullptr };
 };
@@ -136,9 +155,15 @@ struct TypeExpr : public Obj
   TypeExpr* sub{ nullptr };
 };
 
+struct PointerType : public TypeExpr
+{
+  Type::Qual qual{ Type::Qual::kNone };
+};
+
 struct ArrayType : public TypeExpr
 {
-  int len{ 0 }; /// 如果 len 为 -1 则表示不确定长度
+  std::uint32_t len{ 0 }; /// 数组长度，kUnLen 表示未知
+  static constexpr std::uint32_t kUnLen = UINT32_MAX;
 };
 
 struct FunctionType : public TypeExpr
@@ -154,12 +179,20 @@ struct Decl;
 
 struct Expr : public Obj
 {
+  enum class Cate : std::uint8_t
+  {
+    kINVALID,
+    kRValue,
+    kLValue,
+  };
+
   Type type;
+  Cate cate{ Cate::kINVALID };
 };
 
 struct IntegerLiteral : public Expr
 {
-  std::uint64_t val;
+  std::uint64_t val{ 0 };
 };
 
 struct StringLiteral : public Expr
@@ -181,12 +214,13 @@ struct UnaryExpr : public Expr
 {
   enum Op
   {
+    kINVALID,
     kPos,
     kNeg,
     kNot
   };
 
-  Op op;
+  Op op{ kINVALID };
   Expr* sub{ nullptr };
 };
 
@@ -194,6 +228,7 @@ struct BinaryExpr : public Expr
 {
   enum Op
   {
+    kINVALID,
     kMul,
     kDiv,
     kMod,
@@ -212,7 +247,7 @@ struct BinaryExpr : public Expr
     kIndex,
   };
 
-  Op op;
+  Op op{ kINVALID };
   Expr *lft{ nullptr }, *rht{ nullptr };
 };
 
@@ -251,6 +286,9 @@ struct ImplicitCastExpr : public Expr
 struct FunctionDecl;
 
 struct Stmt : public Obj
+{};
+
+struct NullStmt : public Stmt
 {};
 
 struct DeclStmt : public Stmt
@@ -314,7 +352,7 @@ struct Decl : public Obj
 
 struct VarDecl : public Decl
 {
-  Expr* init;
+  Expr* init{ nullptr };
 };
 
 struct FunctionDecl : public Decl

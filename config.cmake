@@ -9,7 +9,7 @@ set(TASK1_WITH "antlr")
 # 实验二的完成方式："bison"或"antlr"
 set(TASK2_WITH "antlr")
 # 是否在实验二复活，ON或OFF
-set(TASK2_REVIVE ON)
+set(TASK2_REVIVE OFF)
 
 # 是否在实验三复活，ON或OFF
 set(TASK3_REVIVE ON)

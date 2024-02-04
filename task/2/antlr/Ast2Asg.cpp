@@ -1,8 +1,26 @@
 #include "Ast2Asg.hpp"
+#include <unordered_map>
 
 #define self (*this)
 
 namespace asg {
+
+struct Ast2Asg::Symtbl : public std::unordered_map<std::string, Decl*>
+{
+  Ast2Asg& m;
+  Symtbl* mPrev;
+
+  Symtbl(Ast2Asg& m)
+    : m(m)
+    , mPrev(m.mSymtbl)
+  {
+    m.mSymtbl = this;
+  }
+
+  ~Symtbl() { m.mSymtbl = mPrev; }
+
+  Decl* resolve(const std::string& name);
+};
 
 Decl*
 Ast2Asg::Symtbl::resolve(const std::string& name)
@@ -10,9 +28,24 @@ Ast2Asg::Symtbl::resolve(const std::string& name)
   auto iter = find(name);
   if (iter != end())
     return iter->second;
-  assert(_prev != nullptr); // 标识符未定义
-  return _prev->resolve(name);
+  ASSERT(mPrev != nullptr); // 标识符未定义
+  return mPrev->resolve(name);
 }
+
+struct Ast2Asg::CurrentLoop
+{
+  Ast2Asg& m;
+  Stmt* mPrev;
+
+  CurrentLoop(Ast2Asg& m, Stmt* loop)
+    : m(m)
+    , mPrev(m.mCurrentLoop)
+  {
+    m.mCurrentLoop = loop;
+  }
+
+  ~CurrentLoop() { m.mCurrentLoop = mPrev; }
+};
 
 TranslationUnit
 Ast2Asg::operator()(ast::TranslationUnitContext* ctx)
@@ -43,7 +76,7 @@ Ast2Asg::operator()(ast::TranslationUnitContext* ctx)
       ret.push_back(&make<Decl>());
 
     else
-      ASG_ABORT();
+      ABORT();
   }
 
   return ret;
@@ -53,87 +86,95 @@ Ast2Asg::operator()(ast::TranslationUnitContext* ctx)
 // 类型
 //==============================================================================
 
-Type::Specs
+Ast2Asg::SpecQual
 Ast2Asg::operator()(ast::DeclarationSpecifiersContext* ctx)
 {
-  Type::Specs ret;
+  SpecQual ret = { Type::Spec::kINVALID, Type::Qual::kNone };
 
   for (auto&& i : ctx->declarationSpecifier()) {
     if (auto p = i->typeSpecifier()) {
-      if (p->Long()) {
-        if (ret.base == ret.kINVALID)
-          ret.base = ret.kLong;
-        else if (ret.base == ret.kLong)
-          ret.base = ret.kLongLong;
+      if (ret.first == Type::Spec::kINVALID) {
+        if (p->Void())
+          ret.first = Type::Spec::kVoid;
+        else if (p->Char())
+          ret.first = Type::Spec::kChar;
+        else if (p->Int())
+          ret.first = Type::Spec::kInt;
+        else if (p->Long())
+          ret.first = Type::Spec::kLong;
+        else
+          ABORT(); // 未知的类型说明符
       }
 
-      else if (ret.base == ret.kINVALID) {
-        if (p->Void())
-          ret.base = ret.kVoid;
-        else if (p->Char())
-          ret.base = ret.kChar;
-        else if (p->Int())
-          ret.base = ret.kInt;
+      else if (ret.first == Type::Spec::kLong) {
+        if (p->Long())
+          ret.first = Type::Spec::kLongLong;
         else
-          ASG_ABORT();
+          ABORT(); // 类型说明符无效
       }
 
       else
-        ASG_ABORT(); // 类型说明符无效
+        ABORT(); // 未知的类型说明符
     }
 
     else if (auto p = i->typeQualifier()) {
-      if (p->Const())
-        ret.isConst = true;
+      // 限定符可以重复出现
+      if (p->Const() &&
+          (ret.second == Type::Qual::kNone || ret.second == Type::Qual::kConst))
+        ret.second = Type::Qual::kConst;
       else
-        ASG_ABORT();
+        ABORT(); // 类型限定符无效
     }
 
     else
-      ASG_ABORT();
+      ABORT();
   }
 
   return ret;
 }
 
-Type::Specs
+Ast2Asg::SpecQual
 Ast2Asg::operator()(ast::DeclarationSpecifiers2Context* ctx)
 {
-  Type::Specs ret;
+  SpecQual ret = { Type::Spec::kINVALID, Type::Qual::kNone };
 
   for (auto&& i : ctx->declarationSpecifier()) {
     if (auto p = i->typeSpecifier()) {
-      if (p->Long()) {
-        if (ret.base == Type::Specs::kINVALID)
-          ret.base = Type::Specs::kLong;
-        else if (ret.base == Type::Specs::kLong)
-          ret.base = Type::Specs::kLongLong;
+      if (ret.first == Type::Spec::kINVALID) {
+        if (p->Void())
+          ret.first = Type::Spec::kVoid;
+        else if (p->Char())
+          ret.first = Type::Spec::kChar;
+        else if (p->Int())
+          ret.first = Type::Spec::kInt;
+        else if (p->Long())
+          ret.first = Type::Spec::kLong;
+        else
+          ABORT(); // 未知的类型说明符
       }
 
-      else if (ret.base == Type::Specs::kINVALID) {
-        if (p->Void())
-          ret.base = Type::Specs::kVoid;
-        else if (p->Char())
-          ret.base = Type::Specs::kChar;
-        else if (p->Int())
-          ret.base = Type::Specs::kInt;
+      else if (ret.first == Type::Spec::kLong) {
+        if (p->Long())
+          ret.first = Type::Spec::kLongLong;
         else
-          ASG_ABORT();
+          ABORT(); // 类型说明符无效
       }
 
       else
-        ASG_ABORT(); // 类型说明符无效
+        ABORT(); // 未知的类型说明符
     }
 
     else if (auto p = i->typeQualifier()) {
-      if (p->Const())
-        ret.isConst = true;
+      // 限定符可以重复出现
+      if (p->Const() &&
+          (ret.second == Type::Qual::kNone || ret.second == Type::Qual::kConst))
+        ret.second = Type::Qual::kConst;
       else
-        ASG_ABORT();
+        ABORT(); // 类型限定符无效
     }
 
     else
-      ASG_ABORT();
+      ABORT();
   }
 
   return ret;
@@ -148,30 +189,30 @@ Ast2Asg::operator()(ast::DeclaratorContext* ctx, TypeExpr* sub)
 static int
 eval_arrlen(Expr* expr)
 {
-  if (auto p = expr->dcast<IntegerLiteral>())
+  if (auto p = expr->dcst<IntegerLiteral>())
     return p->val;
 
-  if (auto p = expr->dcast<DeclRefExpr>()) {
+  if (auto p = expr->dcst<DeclRefExpr>()) {
     if (p->decl == nullptr)
-      ASG_ABORT();
+      ABORT();
 
-    auto var = p->decl->dcast<VarDecl>();
-    if (!var || !var->type.specs.isConst)
-      ASG_ABORT();
+    auto var = p->decl->dcst<VarDecl>();
+    if (!var || var->type.qual != Type::Qual::kConst)
+      ABORT(); // 数组长度必须是编译期常量
 
-    switch (var->type.specs.base) {
-      case Type::Specs::kChar:
-      case Type::Specs::kInt:
-      case Type::Specs::kLong:
-      case Type::Specs::kLongLong:
+    switch (var->type.spec) {
+      case Type::Spec::kChar:
+      case Type::Spec::kInt:
+      case Type::Spec::kLong:
+      case Type::Spec::kLongLong:
         return eval_arrlen(var->init);
 
       default:
-        ASG_ABORT();
+        ABORT(); // 长度表达式必须是数值类型
     }
   }
 
-  if (auto p = expr->dcast<UnaryExpr>()) {
+  if (auto p = expr->dcst<UnaryExpr>()) {
     auto sub = eval_arrlen(p->sub);
 
     switch (p->op) {
@@ -185,11 +226,11 @@ eval_arrlen(Expr* expr)
         return !sub;
 
       default:
-        ASG_ABORT();
+        ABORT();
     }
   }
 
-  if (auto p = expr->dcast<BinaryExpr>()) {
+  if (auto p = expr->dcst<BinaryExpr>()) {
     auto lft = eval_arrlen(p->lft);
     auto rht = eval_arrlen(p->rht);
 
@@ -234,17 +275,17 @@ eval_arrlen(Expr* expr)
         return lft || rht;
 
       default:
-        ASG_ABORT();
+        ABORT();
     }
   }
 
-  if (auto p = expr->dcast<InitListExpr>()) {
+  if (auto p = expr->dcst<InitListExpr>()) {
     if (p->list.empty())
       return 0;
     return eval_arrlen(p->list[0]);
   }
 
-  ASG_ABORT();
+  ABORT();
 }
 
 std::pair<TypeExpr*, std::string>
@@ -263,7 +304,7 @@ Ast2Asg::operator()(ast::DirectDeclaratorContext* ctx, TypeExpr* sub)
     if (auto p = ctx->assignmentExpression())
       arrayType.len = eval_arrlen(self(p));
     else
-      arrayType.len = -1;
+      arrayType.len = ArrayType::kUnLen;
 
     return self(ctx->directDeclarator(), &arrayType);
   }
@@ -280,7 +321,7 @@ Ast2Asg::operator()(ast::DirectDeclaratorContext* ctx, TypeExpr* sub)
     return self(ctx->directDeclarator(), &funcType);
   }
 
-  ASG_ABORT();
+  ABORT();
 }
 
 TypeExpr*
@@ -302,7 +343,7 @@ Ast2Asg::operator()(ast::DirectAbstractDeclaratorContext* ctx, TypeExpr* sub)
     if (auto p = ctx->assignmentExpression())
       arrayType.len = eval_arrlen(self(p));
     else
-      arrayType.len = -1;
+      arrayType.len = ArrayType::kUnLen;
 
     sub = &arrayType;
   }
@@ -320,7 +361,7 @@ Ast2Asg::operator()(ast::DirectAbstractDeclaratorContext* ctx, TypeExpr* sub)
   }
 
   else
-    ASG_ABORT();
+    ABORT();
 
   if (auto p = ctx->directAbstractDeclarator())
     return self(p, sub);
@@ -418,7 +459,7 @@ Ast2Asg::operator()(ast::EqualityExpressionContext* ctx)
         break;
 
       default:
-        ASG_ABORT();
+        ABORT();
     }
 
     node.lft = ret;
@@ -460,7 +501,7 @@ Ast2Asg::operator()(ast::RelationalExpressionContext* ctx)
         break;
 
       default:
-        ASG_ABORT();
+        ABORT();
     }
 
     node.lft = ret;
@@ -495,7 +536,7 @@ Ast2Asg::operator()(ast::AdditiveExpressionContext* ctx)
         break;
 
       default:
-        ASG_ABORT();
+        ABORT();
     }
 
     node.lft = ret;
@@ -533,7 +574,7 @@ Ast2Asg::operator()(ast::MultiplicativeExpressionContext* ctx)
         break;
 
       default:
-        ASG_ABORT();
+        ABORT();
     }
 
     node.lft = ret;
@@ -569,7 +610,7 @@ Ast2Asg::operator()(ast::UnaryExpressionContext* ctx)
       break;
 
     default:
-      ASG_ABORT();
+      ABORT();
   }
 
   ret.sub = self(ctx->unaryExpression());
@@ -614,7 +655,7 @@ Ast2Asg::operator()(ast::PostfixExpressionContext* ctx)
       } break;
 
       default:
-        ASG_ABORT();
+        ABORT();
     }
   }
 
@@ -633,7 +674,7 @@ Ast2Asg::operator()(ast::PrimaryExpressionContext* ctx)
   if (auto p = ctx->Identifier()) {
     auto name = p->getText();
     auto& ret = make<DeclRefExpr>();
-    ret.decl = _symtbl->resolve(name);
+    ret.decl = mSymtbl->resolve(name);
     return &ret;
   }
 
@@ -642,7 +683,7 @@ Ast2Asg::operator()(ast::PrimaryExpressionContext* ctx)
 
     auto& ret = make<IntegerLiteral>();
 
-    assert(!text.empty());
+    ASSERT(!text.empty());
     if (text[0] != '0')
       ret.val = std::stoll(text);
 
@@ -673,7 +714,7 @@ Ast2Asg::operator()(ast::PrimaryExpressionContext* ctx)
 
             case '\r':
               ++i;
-              assert(s[i] == '\n');
+              ASSERT(s[i] == '\n');
               break;
 
             case '\'':
@@ -721,7 +762,7 @@ Ast2Asg::operator()(ast::PrimaryExpressionContext* ctx)
               break;
 
             default:
-              ASG_ABORT();
+              ABORT();
           }
         }
 
@@ -736,7 +777,7 @@ Ast2Asg::operator()(ast::PrimaryExpressionContext* ctx)
     return &ret;
   }
 
-  ASG_ABORT();
+  ABORT();
 }
 
 Expr*
@@ -777,7 +818,7 @@ Ast2Asg::operator()(ast::StatementContext* ctx)
   if (auto p = ctx->jumpStatement())
     return self(p);
 
-  ASG_ABORT();
+  ABORT();
 }
 
 CompoundStmt*
@@ -799,7 +840,7 @@ Ast2Asg::operator()(ast::CompoundStatementContext* ctx)
         ret.subs.push_back(self(q));
 
       else
-        ASG_ABORT();
+        ABORT();
     }
   }
 
@@ -870,27 +911,27 @@ Ast2Asg::operator()(ast::JumpStatementContext* ctx)
 {
   if (ctx->Continue()) {
     auto& ret = make<ContinueStmt>();
-    assert(_currentLoop != nullptr);
-    ret.loop = _currentLoop;
+    ASSERT(mCurrentLoop != nullptr);
+    ret.loop = mCurrentLoop;
     return &ret;
   }
 
   if (ctx->Break()) {
     auto& ret = make<BreakStmt>();
-    assert(_currentLoop != nullptr);
-    ret.loop = _currentLoop;
+    ASSERT(mCurrentLoop != nullptr);
+    ret.loop = mCurrentLoop;
     return &ret;
   }
 
   if (ctx->Return()) {
     auto& ret = make<ReturnStmt>();
-    ret.func = _currentFunc;
+    ret.func = mCurrentFunc;
     if (auto p = ctx->expression())
       ret.expr = self(p);
     return &ret;
   }
 
-  ASG_ABORT();
+  ABORT();
 }
 
 //==============================================================================
@@ -917,9 +958,10 @@ FunctionDecl*
 Ast2Asg::operator()(ast::FunctionDefinitionContext* ctx)
 {
   auto& ret = make<FunctionDecl>();
-  _currentFunc = &ret;
+  mCurrentFunc = &ret;
 
-  ret.type.specs = self(ctx->declarationSpecifiers());
+  auto sq = self(ctx->declarationSpecifiers());
+  ret.type.spec = sq.first, ret.type.qual = sq.second;
 
   auto [texp, name] = self(ctx->directDeclarator(), nullptr);
   auto& funcType = make<FunctionType>();
@@ -939,7 +981,7 @@ Ast2Asg::operator()(ast::FunctionDefinitionContext* ctx)
   }
 
   // 函数定义在签名之后就加入符号表，以允许递归调用
-  (*_symtbl)[ret.name] = &ret;
+  (*mSymtbl)[ret.name] = &ret;
 
   ret.body = self(ctx->compoundStatement());
 
@@ -947,20 +989,21 @@ Ast2Asg::operator()(ast::FunctionDefinitionContext* ctx)
 }
 
 Decl*
-Ast2Asg::operator()(ast::InitDeclaratorContext* ctx, Type::Specs specs)
+Ast2Asg::operator()(ast::InitDeclaratorContext* ctx, SpecQual sq)
 {
   auto [texp, name] = self(ctx->declarator(), nullptr);
   Decl* ret;
 
-  if (auto funcType = texp->dcast<FunctionType>()) {
+  if (auto funcType = texp->dcst<FunctionType>()) {
     auto& fdecl = make<FunctionDecl>();
-    fdecl.type.specs = specs;
+    fdecl.type.spec = sq.first;
+    fdecl.type.qual = sq.second;
     fdecl.type.texp = funcType;
     fdecl.name = std::move(name);
     fdecl.params = funcType->params;
 
     if (ctx->initializer())
-      ASG_ABORT();
+      ABORT();
     fdecl.body = nullptr;
 
     ret = &fdecl;
@@ -968,7 +1011,8 @@ Ast2Asg::operator()(ast::InitDeclaratorContext* ctx, Type::Specs specs)
 
   else {
     auto& vdecl = make<VarDecl>();
-    vdecl.type.specs = specs;
+    vdecl.type.spec = sq.first;
+    vdecl.type.qual = sq.second;
     vdecl.type.texp = texp;
     vdecl.name = std::move(name);
 
@@ -981,7 +1025,7 @@ Ast2Asg::operator()(ast::InitDeclaratorContext* ctx, Type::Specs specs)
   }
 
   // 这个实现允许符号重复定义，新定义会取代旧定义
-  (*_symtbl)[ret->name] = ret;
+  (*mSymtbl)[ret->name] = ret;
   return ret;
 }
 
@@ -991,15 +1035,19 @@ Ast2Asg::operator()(ast::ParameterDeclarationContext* ctx)
   auto& ret = make<VarDecl>();
 
   if (auto p = ctx->declarationSpecifiers()) {
-    ret.type.specs = self(p);
+    auto sp = self(p);
+    ret.type.spec = sp.first, ret.type.qual = sp.second;
+
     auto [texp, name] = self(ctx->declarator(), nullptr);
     ret.type.texp = texp;
+
     ret.name = std::move(name);
     ret.init = nullptr;
   }
 
   else if (auto p = ctx->declarationSpecifiers2()) {
-    ret.type.specs = self(p);
+    auto sp = self(p);
+    ret.type.spec = sp.first, ret.type.qual = sp.second;
 
     if (auto q = ctx->abstractDeclarator())
       ret.type.texp = self(q, nullptr);
@@ -1011,7 +1059,7 @@ Ast2Asg::operator()(ast::ParameterDeclarationContext* ctx)
   }
 
   else
-    ASG_ABORT();
+    ABORT();
 
   return &ret;
 }

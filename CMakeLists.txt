@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 
 include(config.cmake)
-project(SYsU-lang VERSION 2.0.0.0 DESCRIPTION)
+project(SYsU-lang VERSION 2.0.0.0)
 include(CTest)
 
 # 语言标准

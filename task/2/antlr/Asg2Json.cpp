@@ -26,12 +26,12 @@ Asg2Json::operator()(TranslationUnit& tu)
 std::string
 Asg2Json::operator()(TypeExpr* texp)
 {
-  WalkedGuard guard(self, texp);
+  Obj::Walked guard(texp);
 
-  if (auto p = texp->dcast<ArrayType>()) {
+  if (auto p = texp->dcst<ArrayType>()) {
     std::string ret = "[";
 
-    if (p->len != -1)
+    if (p->len != ArrayType::kUnLen)
       ret += std::to_string(p->len);
     ret.push_back(']');
 
@@ -41,7 +41,7 @@ Asg2Json::operator()(TypeExpr* texp)
     return ret;
   }
 
-  if (auto p = texp->dcast<FunctionType>()) {
+  if (auto p = texp->dcst<FunctionType>()) {
     std::string ret;
 
     if (texp->sub != nullptr)
@@ -62,7 +62,7 @@ Asg2Json::operator()(TypeExpr* texp)
     return ret;
   }
 
-  ASG_ABORT();
+  ABORT();
 }
 
 std::string
@@ -70,36 +70,45 @@ Asg2Json::operator()(const Type& type)
 {
   std::string ret;
 
-  if (type.specs.isConst)
-    ret += "const ";
+  switch (type.qual) {
+    case Type::Qual::kNone:
+      break;
 
-  switch (type.specs.base) {
-    case Type::Specs::kINVALID:
+    case Type::Qual::kConst:
+      ret += "const ";
+      break;
+
+    default:
+      ABORT();
+  }
+
+  switch (type.spec) {
+    case Type::Spec::kINVALID:
       ret += "INVALID";
       break;
 
-    case Type::Specs::kVoid:
+    case Type::Spec::kVoid:
       ret += "void";
       break;
 
-    case Type::Specs::kChar:
+    case Type::Spec::kChar:
       ret += "char";
       break;
 
-    case Type::Specs::kInt:
+    case Type::Spec::kInt:
       ret += "int";
       break;
 
-    case Type::Specs::kLong:
+    case Type::Spec::kLong:
       ret += "long";
       break;
 
-    case Type::Specs::kLongLong:
+    case Type::Spec::kLongLong:
       ret += "long long";
       break;
 
     default:
-      ASG_ABORT();
+      ABORT();
   }
 
   if (type.texp)
@@ -117,59 +126,59 @@ Asg2Json::operator()(Expr* obj)
 {
   json::Object ret;
 
-  if (auto p = obj->dcast<IntegerLiteral>())
+  if (auto p = obj->dcst<IntegerLiteral>())
     ret = std::move(self(p));
 
-  else if (auto p = obj->dcast<StringLiteral>())
+  else if (auto p = obj->dcst<StringLiteral>())
     ret = std::move(self(p));
 
-  else if (auto p = obj->dcast<DeclRefExpr>())
+  else if (auto p = obj->dcst<DeclRefExpr>())
     ret = std::move(self(p));
 
-  else if (auto p = obj->dcast<DeclRefExpr>())
+  else if (auto p = obj->dcst<DeclRefExpr>())
     ret = std::move(self(p));
 
-  else if (auto p = obj->dcast<ParenExpr>())
+  else if (auto p = obj->dcst<ParenExpr>())
     ret = std::move(self(p));
 
-  else if (auto p = obj->dcast<UnaryExpr>())
+  else if (auto p = obj->dcst<UnaryExpr>())
     ret = std::move(self(p));
 
-  else if (auto p = obj->dcast<BinaryExpr>())
+  else if (auto p = obj->dcst<BinaryExpr>())
     ret = std::move(self(p));
 
-  else if (auto p = obj->dcast<CallExpr>())
+  else if (auto p = obj->dcst<CallExpr>())
     ret = std::move(self(p));
 
-  else if (auto p = obj->dcast<InitListExpr>())
+  else if (auto p = obj->dcst<InitListExpr>())
     ret = std::move(self(p));
 
-  else if (auto p = obj->dcast<ImplicitInitExpr>())
+  else if (auto p = obj->dcst<ImplicitInitExpr>())
     ret = std::move(self(p));
 
-  else if (auto p = obj->dcast<ImplicitCastExpr>())
+  else if (auto p = obj->dcst<ImplicitCastExpr>())
     ret = std::move(self(p));
 
   else
-    ASG_ABORT();
+    ABORT();
 
   ret["type"] = json::Object({ { "qualType", self(obj->type) } });
 
-  switch (obj->type.cate) {
-    case Type::kINVALID:
+  switch (obj->cate) {
+    case Expr::Cate::kINVALID:
       ret["valueCategory"] = "INVALID";
       break;
 
-    case Type::kLValue:
+    case Expr::Cate::kLValue:
       ret["valueCategory"] = "lvalue";
       break;
 
-    case Type::kRValue:
+    case Expr::Cate::kRValue:
       ret["valueCategory"] = "pralue";
       break;
 
     default:
-      ASG_ABORT();
+      ABORT();
   }
 
   return ret;
@@ -179,7 +188,7 @@ json::Object
 Asg2Json::operator()(IntegerLiteral* obj)
 {
   json::Object ret;
-  WalkedGuard guard(self, obj);
+  Obj::Walked guard(obj);
 
   ret["kind"] = "IntegerLiteral";
   ret["value"] = std::to_string(obj->val);
@@ -191,7 +200,7 @@ json::Object
 Asg2Json::operator()(StringLiteral* obj)
 {
   json::Object ret;
-  WalkedGuard guard(self, obj);
+  Obj::Walked guard(obj);
 
   ret["kind"] = "StringLiteral";
 
@@ -257,7 +266,7 @@ json::Object
 Asg2Json::operator()(DeclRefExpr* obj)
 {
   json::Object ret;
-  WalkedGuard guard(self, obj);
+  Obj::Walked guard(obj);
 
   ret["kind"] = "DeclRefExpr";
 
@@ -268,7 +277,7 @@ json::Object
 Asg2Json::operator()(ParenExpr* obj)
 {
   json::Object ret;
-  WalkedGuard guard(self, obj);
+  Obj::Walked guard(obj);
 
   ret["kind"] = "ParenExpr";
 
@@ -285,7 +294,7 @@ Asg2Json::operator()(UnaryExpr* obj)
   assert(obj->sub);
 
   json::Object ret;
-  WalkedGuard guard(self, obj);
+  Obj::Walked guard(obj);
 
   ret["kind"] = "UnaryOperator";
 
@@ -303,7 +312,7 @@ Asg2Json::operator()(UnaryExpr* obj)
       break;
 
     default:
-      ASG_ABORT();
+      ABORT();
   }
 
   json::Array inner;
@@ -319,7 +328,7 @@ Asg2Json::operator()(BinaryExpr* obj)
   assert(obj->lft && obj->rht);
 
   json::Object ret;
-  WalkedGuard guard(self, obj);
+  Obj::Walked guard(obj);
 
   ret["kind"] = "BinaryOperator";
 
@@ -389,7 +398,7 @@ Asg2Json::operator()(BinaryExpr* obj)
       break;
 
     default:
-      ASG_ABORT();
+      ABORT();
   }
 
   json::Array inner;
@@ -406,7 +415,7 @@ Asg2Json::operator()(CallExpr* obj)
   assert(obj->head);
 
   json::Object ret;
-  WalkedGuard guard(self, obj);
+  Obj::Walked guard(obj);
 
   ret["kind"] = "CallExpr";
 
@@ -423,7 +432,7 @@ json::Object
 Asg2Json::operator()(InitListExpr* obj)
 {
   json::Object ret;
-  WalkedGuard guard(self, obj);
+  Obj::Walked guard(obj);
 
   ret["kind"] = "InitListExpr";
 
@@ -439,7 +448,7 @@ json::Object
 Asg2Json::operator()(ImplicitInitExpr* obj)
 {
   json::Object ret;
-  WalkedGuard guard(self, obj);
+  Obj::Walked guard(obj);
 
   ret["kind"] = "InitListExpr";
 
@@ -450,7 +459,7 @@ json::Object
 Asg2Json::operator()(ImplicitCastExpr* obj)
 {
   json::Object ret;
-  WalkedGuard guard(self, obj);
+  Obj::Walked guard(obj);
 
   ret["kind"] = "ImplicitCastExpr";
 
@@ -468,31 +477,31 @@ Asg2Json::operator()(ImplicitCastExpr* obj)
 json::Object
 Asg2Json::operator()(Stmt* obj)
 {
-  if (auto p = obj->dcast<DeclStmt>())
+  if (auto p = obj->dcst<DeclStmt>())
     return self(p);
 
-  if (auto p = obj->dcast<ExprStmt>())
+  if (auto p = obj->dcst<ExprStmt>())
     return self(p);
 
-  if (auto p = obj->dcast<CompoundStmt>())
+  if (auto p = obj->dcst<CompoundStmt>())
     return self(p);
 
-  if (auto p = obj->dcast<IfStmt>())
+  if (auto p = obj->dcst<IfStmt>())
     return self(p);
 
-  if (auto p = obj->dcast<WhileStmt>())
+  if (auto p = obj->dcst<WhileStmt>())
     return self(p);
 
-  if (auto p = obj->dcast<DoStmt>())
+  if (auto p = obj->dcst<DoStmt>())
     return self(p);
 
-  if (auto p = obj->dcast<BreakStmt>())
+  if (auto p = obj->dcst<BreakStmt>())
     return self(p);
 
-  if (auto p = obj->dcast<ContinueStmt>())
+  if (auto p = obj->dcst<ContinueStmt>())
     return self(p);
 
-  if (auto p = obj->dcast<ReturnStmt>())
+  if (auto p = obj->dcst<ReturnStmt>())
     return self(p);
 
   if (typeid(*obj) == typeid(Stmt)) {
@@ -501,14 +510,14 @@ Asg2Json::operator()(Stmt* obj)
     return ret;
   }
 
-  ASG_ABORT();
+  ABORT();
 }
 
 json::Object
 Asg2Json::operator()(DeclStmt* obj)
 {
   json::Object ret;
-  WalkedGuard guard(self, obj);
+  Obj::Walked guard(obj);
 
   ret["kind"] = "DeclStmt";
 
@@ -531,7 +540,7 @@ json::Object
 Asg2Json::operator()(CompoundStmt* obj)
 {
   json::Object ret;
-  WalkedGuard guard(self, obj);
+  Obj::Walked guard(obj);
 
   ret["kind"] = "CompoundStmt";
 
@@ -549,7 +558,7 @@ Asg2Json::operator()(IfStmt* obj)
   assert(obj->cond && obj->then);
 
   json::Object ret;
-  WalkedGuard guard(self, obj);
+  Obj::Walked guard(obj);
 
   ret["kind"] = "IfStmt";
 
@@ -567,7 +576,7 @@ json::Object
 Asg2Json::operator()(WhileStmt* obj)
 {
   json::Object ret;
-  WalkedGuard guard(self, obj);
+  Obj::Walked guard(obj);
 
   ret["kind"] = "WhileStmt";
 
@@ -583,7 +592,7 @@ json::Object
 Asg2Json::operator()(DoStmt* obj)
 {
   json::Object ret;
-  WalkedGuard guard(self, obj);
+  Obj::Walked guard(obj);
 
   ret["kind"] = "DoStmt";
 
@@ -599,7 +608,7 @@ json::Object
 Asg2Json::operator()(BreakStmt* obj)
 {
   json::Object ret;
-  WalkedGuard guard(self, obj);
+  Obj::Walked guard(obj);
 
   ret["kind"] = "BreakStmt";
 
@@ -610,7 +619,7 @@ json::Object
 Asg2Json::operator()(ContinueStmt* obj)
 {
   json::Object ret;
-  WalkedGuard guard(self, obj);
+  Obj::Walked guard(obj);
 
   ret["kind"] = "ContinueStmt";
 
@@ -621,7 +630,7 @@ json::Object
 Asg2Json::operator()(ReturnStmt* obj)
 {
   json::Object ret;
-  WalkedGuard guard(self, obj);
+  Obj::Walked guard(obj);
 
   ret["kind"] = "ReturnStmt";
 
@@ -642,14 +651,14 @@ Asg2Json::operator()(Decl* obj)
 {
   json::Object ret;
 
-  if (auto p = obj->dcast<VarDecl>())
+  if (auto p = obj->dcst<VarDecl>())
     ret = std::move(self(p));
 
-  else if (auto p = obj->dcast<FunctionDecl>())
+  else if (auto p = obj->dcst<FunctionDecl>())
     ret = std::move(self(p));
 
   else
-    ASG_ABORT();
+    ABORT();
 
   ret["type"] = json::Object({ { "qualType", self(obj->type) } });
 
@@ -660,7 +669,7 @@ json::Object
 Asg2Json::operator()(VarDecl* obj)
 {
   json::Object ret;
-  WalkedGuard guard(self, obj);
+  Obj::Walked guard(obj);
 
   ret["kind"] = "VarDecl";
 
@@ -678,7 +687,7 @@ json::Object
 Asg2Json::operator()(FunctionDecl* obj)
 {
   json::Object ret;
-  WalkedGuard guard(self, obj);
+  Obj::Walked guard(obj);
 
   ret["kind"] = "FunctionDecl";
 
@@ -700,4 +709,4 @@ Asg2Json::operator()(FunctionDecl* obj)
   return ret;
 }
 
-}
+} // namespace asg

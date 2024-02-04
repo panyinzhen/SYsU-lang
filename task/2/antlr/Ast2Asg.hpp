@@ -2,7 +2,6 @@
 
 #include "SYsU_langParser.h"
 #include "asg.hpp"
-#include <unordered_map>
 
 namespace asg {
 
@@ -11,58 +10,39 @@ using ast = SYsU_langParser;
 class Ast2Asg
 {
 public:
-  Obj::Mgr _mgr;
+  Obj::Mgr& mMgr;
 
-public:
+  Ast2Asg(Obj::Mgr& mgr)
+    : mMgr(mgr)
+  {
+  }
+
   TranslationUnit operator()(ast::TranslationUnitContext* ctx);
 
 private:
-  struct Symtbl : public std::unordered_map<std::string, Decl*>
+  using SpecQual = std::pair<Type::Spec, Type::Qual>;
+
+  struct Symtbl;
+  Symtbl* mSymtbl{ nullptr };
+
+  struct CurrentLoop;
+  Stmt* mCurrentLoop{ nullptr };
+
+  FunctionDecl* mCurrentFunc{ nullptr };
+
+  template<typename T, typename... Args>
+  T& make(Args... args)
   {
-    Ast2Asg& _self;
-    Symtbl* _prev;
+    return mMgr.make<T>(args...);
+  }
 
-    Symtbl(Ast2Asg& self)
-      : _self(self)
-      , _prev(self._symtbl)
-    {
-      _self._symtbl = this;
-    }
-
-    ~Symtbl() { _self._symtbl = _prev; }
-
-    Decl* resolve(const std::string& name);
-  };
-
-  Symtbl* _symtbl{ nullptr };
-
-  struct CurrentLoop
-  {
-    Ast2Asg& _self;
-    Stmt* _prev;
-
-    CurrentLoop(Ast2Asg& self, Stmt* loop)
-      : _self(self)
-      , _prev(self._currentLoop)
-    {
-      _self._currentLoop = loop;
-    }
-
-    ~CurrentLoop() { _self._currentLoop = _prev; }
-  };
-
-  Stmt* _currentLoop{ nullptr };
-
-  FunctionDecl* _currentFunc{ nullptr };
-
-private:
   //============================================================================
   // 类型
   //============================================================================
 
-  Type::Specs operator()(ast::DeclarationSpecifiersContext* ctx);
+  SpecQual operator()(ast::DeclarationSpecifiersContext* ctx);
 
-  Type::Specs operator()(ast::DeclarationSpecifiers2Context* ctx);
+  SpecQual operator()(ast::DeclarationSpecifiers2Context* ctx);
 
   std::pair<TypeExpr*, std::string> operator()(ast::DeclaratorContext* ctx,
                                                TypeExpr* sub);
@@ -128,16 +108,9 @@ private:
 
   FunctionDecl* operator()(ast::FunctionDefinitionContext* ctx);
 
-  Decl* operator()(ast::InitDeclaratorContext* ctx, Type::Specs specs);
+  Decl* operator()(ast::InitDeclaratorContext* ctx, SpecQual sq);
 
   VarDecl* operator()(ast::ParameterDeclarationContext* ctx);
-
-private:
-  template<typename T, typename... Args>
-  T& make(Args... args)
-  {
-    return _mgr.make<T>(args...);
-  }
 };
 
 } // namespace asg
