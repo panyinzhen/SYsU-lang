@@ -71,6 +71,8 @@
     "cfenv": "cpp",
     "cinttypes": "cpp",
     "typeinfo": "cpp",
-    "__nullptr": "cpp"
+    "__nullptr": "cpp",
+    "*.inc": "cpp",
+    "*.y": "cpp"
   }
 }

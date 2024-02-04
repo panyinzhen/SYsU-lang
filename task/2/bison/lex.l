@@ -1,182 +1,133 @@
-D      [0-9]
-L      [a-zA-Z_]
-H      [a-fA-F0-9]
-E      ([Ee][+-]?{D}+)
+%{
+#include "lex.hpp"
+/* 所有代码全部抽离出来，放到 lex.hpp 和 lex.cpp 里 */
+
+using namespace lex;
+
+#define ADDCOL() g.mColumn += yyleng;
+#define COME(id) return come(id, yytext, yyleng, yylineno)
+%}
+
+%option 8bit warn noyywrap yylineno
+
+D     [0-9]
+L     [a-zA-Z_]
+H     [a-fA-F0-9]
+E     ([Ee][+-]?{D}+)
 P     ([Pp][+-]?{D}+)
 FS    (f|F|l|L)
 IS    ((u|U)|(u|U)?(l|L|ll|LL)|(l|L|ll|LL)(u|U))
 
-%{
-#include <stdio.h>
-#include "y.tab.h"
-
-void count(void);
-%}
-
 %%
-"/*"          { comment(); }
-"//"[^\n]*    { /* consume //-comment */ }
 
+"auto"        { ADDCOL(); COME(AUTO); }
+"_Bool"       { ADDCOL(); COME(BOOL); }
+"break"       { ADDCOL(); COME(BREAK); }
+"case"        { ADDCOL(); COME(CASE); }
+"char"        { ADDCOL(); COME(CHAR); }
+"_Complex"    { ADDCOL(); COME(COMPLEX); }
+"const"       { ADDCOL(); COME(CONST); }
+"continue"    { ADDCOL(); COME(CONTINUE); }
+"default"     { ADDCOL(); COME(DEFAULT); }
+"do"          { ADDCOL(); COME(DO); }
+"double"      { ADDCOL(); COME(DOUBLE); }
+"else"        { ADDCOL(); COME(ELSE); }
+"enum"        { ADDCOL(); COME(ENUM); }
+"extern"      { ADDCOL(); COME(EXTERN); }
+"float"       { ADDCOL(); COME(FLOAT); }
+"for"         { ADDCOL(); COME(FOR); }
+"goto"        { ADDCOL(); COME(GOTO); }
+"if"          { ADDCOL(); COME(IF); }
+"_Imaginary"  { ADDCOL(); COME(IMAGINARY); }
+"inline"      { ADDCOL(); COME(INLINE); }
+"int"         { ADDCOL(); COME(INT); }
+"long"        { ADDCOL(); COME(LONG); }
+"register"    { ADDCOL(); COME(REGISTER); }
+"restrict"    { ADDCOL(); COME(RESTRICT); }
+"return"      { ADDCOL(); COME(RETURN); }
+"short"       { ADDCOL(); COME(SHORT); }
+"signed"      { ADDCOL(); COME(SIGNED); }
+"sizeof"      { ADDCOL(); COME(SIZEOF); }
+"static"      { ADDCOL(); COME(STATIC); }
+"struct"      { ADDCOL(); COME(STRUCT); }
+"switch"      { ADDCOL(); COME(SWITCH); }
+"typedef"     { ADDCOL(); COME(TYPEDEF); }
+"union"       { ADDCOL(); COME(UNION); }
+"unsigned"    { ADDCOL(); COME(UNSIGNED); }
+"void"        { ADDCOL(); COME(VOID); }
+"volatile"    { ADDCOL(); COME(VOLATILE); }
+"while"       { ADDCOL(); COME(WHILE); }
 
-"auto"        { count(); return(AUTO); }
-"_Bool"       { count(); return(BOOL); }
-"break"       { count(); return(BREAK); }
-"case"        { count(); return(CASE); }
-"char"        { count(); return(CHAR); }
-"_Complex"    { count(); return(COMPLEX); }
-"const"       { count(); return(CONST); }
-"continue"    { count(); return(CONTINUE); }
-"default"     { count(); return(DEFAULT); }
-"do"          { count(); return(DO); }
-"double"      { count(); return(DOUBLE); }
-"else"        { count(); return(ELSE); }
-"enum"        { count(); return(ENUM); }
-"extern"      { count(); return(EXTERN); }
-"float"       { count(); return(FLOAT); }
-"for"         { count(); return(FOR); }
-"goto"        { count(); return(GOTO); }
-"if"          { count(); return(IF); }
-"_Imaginary"  { count(); return(IMAGINARY); }
-"inline"      { count(); return(INLINE); }
-"int"         { count(); return(INT); }
-"long"        { count(); return(LONG); }
-"register"    { count(); return(REGISTER); }
-"restrict"    { count(); return(RESTRICT); }
-"return"      { count(); return(RETURN); }
-"short"       { count(); return(SHORT); }
-"signed"      { count(); return(SIGNED); }
-"sizeof"      { count(); return(SIZEOF); }
-"static"      { count(); return(STATIC); }
-"struct"      { count(); return(STRUCT); }
-"switch"      { count(); return(SWITCH); }
-"typedef"     { count(); return(TYPEDEF); }
-"union"       { count(); return(UNION); }
-"unsigned"    { count(); return(UNSIGNED); }
-"void"        { count(); return(VOID); }
-"volatile"    { count(); return(VOLATILE); }
-"while"       { count(); return(WHILE); }
+{L}({L}|{D})*     { ADDCOL(); COME(IDENTIFIER); }
 
-{L}({L}|{D})*     { count(); return(check_type()); }
+0[xX]{H}+{IS}?        { ADDCOL(); COME(CONSTANT); }
+0[0-7]*{IS}?          { ADDCOL(); COME(CONSTANT); }
+[1-9]{D}*{IS}?        { ADDCOL(); COME(CONSTANT); }
+L?'(\\.|[^\\'\n])+'   { ADDCOL(); COME(CONSTANT); }
 
-0[xX]{H}+{IS}?        { count(); return(CONSTANT); }
-0[0-7]*{IS}?          { count(); return(CONSTANT); }
-[1-9]{D}*{IS}?        { count(); return(CONSTANT); }
-L?'(\\.|[^\\'\n])+'   { count(); return(CONSTANT); }
+{D}+{E}{FS}?                { ADDCOL(); COME(CONSTANT); }
+{D}*"."{D}+{E}?{FS}?        { ADDCOL(); COME(CONSTANT); }
+{D}+"."{D}*{E}?{FS}?        { ADDCOL(); COME(CONSTANT); }
+0[xX]{H}+{P}{FS}?           { ADDCOL(); COME(CONSTANT); }
+0[xX]{H}*"."{H}+{P}?{FS}?   { ADDCOL(); COME(CONSTANT); }
+0[xX]{H}+"."{H}*{P}?{FS}?   { ADDCOL(); COME(CONSTANT); }
 
-{D}+{E}{FS}?                { count(); return(CONSTANT); }
-{D}*"."{D}+{E}?{FS}?        { count(); return(CONSTANT); }
-{D}+"."{D}*{E}?{FS}?        { count(); return(CONSTANT); }
-0[xX]{H}+{P}{FS}?           { count(); return(CONSTANT); }
-0[xX]{H}*"."{H}+{P}?{FS}?   { count(); return(CONSTANT); }
-0[xX]{H}+"."{H}*{P}?{FS}?   { count(); return(CONSTANT); }
+L?\"(\\.|[^\\"\n])*\" { ADDCOL(); COME(STRING_LITERAL); }
 
+"..."       { ADDCOL(); COME(ELLIPSIS); }
+">>="       { ADDCOL(); COME(RIGHT_ASSIGN); }
+"<<="       { ADDCOL(); COME(LEFT_ASSIGN); }
+"+="        { ADDCOL(); COME(ADD_ASSIGN); }
+"-="        { ADDCOL(); COME(SUB_ASSIGN); }
+"*="        { ADDCOL(); COME(MUL_ASSIGN); }
+"/="        { ADDCOL(); COME(DIV_ASSIGN); }
+"%="        { ADDCOL(); COME(MOD_ASSIGN); }
+"&="        { ADDCOL(); COME(AND_ASSIGN); }
+"^="        { ADDCOL(); COME(XOR_ASSIGN); }
+"|="        { ADDCOL(); COME(OR_ASSIGN); }
+">>"        { ADDCOL(); COME(RIGHT_OP); }
+"<<"        { ADDCOL(); COME(LEFT_OP); }
+"++"        { ADDCOL(); COME(INC_OP); }
+"--"        { ADDCOL(); COME(DEC_OP); }
+"->"        { ADDCOL(); COME(PTR_OP); }
+"&&"        { ADDCOL(); COME(AND_OP); }
+"||"        { ADDCOL(); COME(OR_OP); }
+"<="        { ADDCOL(); COME(LE_OP); }
+">="        { ADDCOL(); COME(GE_OP); }
+"=="        { ADDCOL(); COME(EQ_OP); }
+"!="        { ADDCOL(); COME(NE_OP); }
+";"         { ADDCOL(); COME(';'); }
+("{"|"<%")  { ADDCOL(); COME('{'); }
+("}"|"%>")  { ADDCOL(); COME('}'); }
+","         { ADDCOL(); COME(','); }
+":"         { ADDCOL(); COME(':'); }
+"="         { ADDCOL(); COME('='); }
+"("         { ADDCOL(); COME('('); }
+")"         { ADDCOL(); COME(')'); }
+("["|"<:")  { ADDCOL(); COME('['); }
+("]"|":>")  { ADDCOL(); COME(']'); }
+"."         { ADDCOL(); COME('.'); }
+"&"         { ADDCOL(); COME('&'); }
+"!"         { ADDCOL(); COME('!'); }
+"~"         { ADDCOL(); COME('~'); }
+"-"         { ADDCOL(); COME('-'); }
+"+"         { ADDCOL(); COME('+'); }
+"*"         { ADDCOL(); COME('*'); }
+"/"         { ADDCOL(); COME('/'); }
+"%"         { ADDCOL(); COME('%'); }
+"<"         { ADDCOL(); COME('<'); }
+">"         { ADDCOL(); COME('>'); }
+"^"         { ADDCOL(); COME('^'); }
+"|"         { ADDCOL(); COME('|'); }
+"?"         { ADDCOL(); COME('?'); }
 
-L?\"(\\.|[^\\"\n])*\" { count(); return(STRING_LITERAL); }
+[ \t\v\n\f]   { spaces(yytext, yyleng); }
 
-"..."       { count(); return(ELLIPSIS); }
-">>="       { count(); return(RIGHT_ASSIGN); }
-"<<="       { count(); return(LEFT_ASSIGN); }
-"+="        { count(); return(ADD_ASSIGN); }
-"-="        { count(); return(SUB_ASSIGN); }
-"*="        { count(); return(MUL_ASSIGN); }
-"/="        { count(); return(DIV_ASSIGN); }
-"%="        { count(); return(MOD_ASSIGN); }
-"&="        { count(); return(AND_ASSIGN); }
-"^="        { count(); return(XOR_ASSIGN); }
-"|="        { count(); return(OR_ASSIGN); }
-">>"        { count(); return(RIGHT_OP); }
-"<<"        { count(); return(LEFT_OP); }
-"++"        { count(); return(INC_OP); }
-"--"        { count(); return(DEC_OP); }
-"->"        { count(); return(PTR_OP); }
-"&&"        { count(); return(AND_OP); }
-"||"        { count(); return(OR_OP); }
-"<="        { count(); return(LE_OP); }
-">="        { count(); return(GE_OP); }
-"=="        { count(); return(EQ_OP); }
-"!="        { count(); return(NE_OP); }
-";"         { count(); return(';'); }
-("{"|"<%")  { count(); return('{'); }
-("}"|"%>")  { count(); return('}'); }
-","         { count(); return(','); }
-":"         { count(); return(':'); }
-"="         { count(); return('='); }
-"("         { count(); return('('); }
-")"         { count(); return(')'); }
-("["|"<:")  { count(); return('['); }
-("]"|":>")  { count(); return(']'); }
-"."         { count(); return('.'); }
-"&"         { count(); return('&'); }
-"!"         { count(); return('!'); }
-"~"         { count(); return('~'); }
-"-"         { count(); return('-'); }
-"+"         { count(); return('+'); }
-"*"         { count(); return('*'); }
-"/"         { count(); return('/'); }
-"%"         { count(); return('%'); }
-"<"         { count(); return('<'); }
-">"         { count(); return('>'); }
-"^"         { count(); return('^'); }
-"|"         { count(); return('|'); }
-"?"         { count(); return('?'); }
-
-[ \t\v\n\f]   { count(); }
-.             { /* Add code to complain about unmatched characters */ }
+.   { ADDCOL(); COME(YYUNDEF); }
 
 %%
 
-int yywrap(void)
-{
-  return 1;
-}
-
-
-void comment(void)
-{
-  char c, prev = 0;
-  
-  while ((c = input()) != 0)      /* (EOF maps to 0) */
-  {
-    if (c == '/' && prev == '*')
-      return;
-    prev = c;
-  }
-  error("unterminated comment");
-}
-
-
-int column = 0;
-
-void count(void)
-{
-  int i;
-
-  for (i = 0; yytext[i] != '\0'; i++)
-    if (yytext[i] == '\n')
-      column = 0;
-    else if (yytext[i] == '\t')
-      column += 8 - (column % 8);
-    else
-      column++;
-
-  ECHO;
-}
-
-
-int check_type(void)
-{
-/*
-* pseudo code --- this is what it should check
-*
-*  if (yytext == type_name)
-*    return TYPE_NAME;
-*
-*  return IDENTIFIER;
+/* about symbols avaliable (yytext, yyleng etc.) in the context of Flex:
+ * https://ftp.gnu.org/old-gnu/Manuals/flex-2.5.4/html_node/flex_14.html
+ * https://ftp.gnu.org/old-gnu/Manuals/flex-2.5.4/html_node/flex_15.html
 */
-
-/*
-*  it actually will only return IDENTIFIER
-*/
-
-  return IDENTIFIER;
-}

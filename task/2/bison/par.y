@@ -1,3 +1,27 @@
+/* 生成.output文件 */
+%verbose
+
+/* 用于调试 (yydebug) */
+%define parse.trace
+
+%code top {
+int yylex (void); // 该函数由 Flex 生成
+void yyerror (char const *); // 该函数定义在 par.cpp 中
+}
+
+%code requires {
+#include "par.hpp"
+}
+
+%union {
+  asg::Expr* Expr;
+	asg::TranslationUnit* TranslationUnit;
+}
+
+/* 在下面说明每个非终结符对应的 union 成员，以便进行编译期类型检查 */
+%nterm <TranslationUnit> translation_unit
+%nterm <Expr> expression
+
 %token IDENTIFIER CONSTANT STRING_LITERAL SIZEOF
 %token PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP
 %token AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN
@@ -11,8 +35,13 @@
 
 %token CASE DEFAULT IF ELSE SWITCH WHILE DO FOR GOTO CONTINUE BREAK RETURN
 
-%start translation_unit
+%start start
+
 %%
+
+start
+	: translation_unit { par::gTranslationUnit.reset($1); }
+	;
 
 primary_expression
 	: IDENTIFIER
@@ -457,15 +486,4 @@ declaration_list
 	| declaration_list declaration
 	;
 
-
 %%
-#include <stdio.h>
-
-extern char yytext[];
-extern int column;
-
-void yyerror(char const *s)
-{
-	fflush(stdout);
-	printf("\n%*s\n%*s\n", column, "^", column, s);
-}

@@ -4,10 +4,10 @@ set(STUDENT_ID "0123456789")
 set(STUDENT_NAME "某某某")
 
 # 实验一的完成方式："flex"或"antlr"
-set(TASK1_WITH "antlr")
+set(TASK1_WITH "flex")
 
 # 实验二的完成方式："bison"或"antlr"
-set(TASK2_WITH "antlr")
+set(TASK2_WITH "bison")
 # 是否在实验二复活，ON或OFF
 set(TASK2_REVIVE OFF)
 

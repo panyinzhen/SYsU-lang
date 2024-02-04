@@ -1,5 +1,6 @@
 %{
 #include "lex.hpp"
+/* 所有代码全部抽离出来，放到 lex.hpp 和 lex.cpp 里 */
 
 using namespace lex;
 

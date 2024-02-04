@@ -11,10 +11,12 @@ antlr4_generate(
   "" # C++ 命名空间
 )
 
+file(GLOB _common_src ../common/*)
 file(GLOB _src *.cpp *.hpp *.c *.h)
-add_executable(task2 ${_src} ${ANTLR4_SRC_FILES_task2-antlr})
+add_executable(task2 ${_common_src} ${_src} ${ANTLR4_SRC_FILES_task2-antlr})
 
-target_include_directories(task2 PRIVATE . ${ANTLR4_INCLUDE_DIR_task2-antlr})
+target_include_directories(task2 PRIVATE . ../common
+                                         ${ANTLR4_INCLUDE_DIR_task2-antlr})
 target_include_directories(task2 SYSTEM PRIVATE ${ANTLR4_INCLUDE_DIR}
                                                 ${LLVM_INCLUDE_DIRS})
 
