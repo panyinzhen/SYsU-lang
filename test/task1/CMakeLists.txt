@@ -19,7 +19,7 @@ file(
 foreach(_case ${_cases})
   set(_output_dir ${CMAKE_CURRENT_BINARY_DIR}/${_case})
   file(MAKE_DIRECTORY ${_output_dir})
-  add_test(NAME test1/${_case} COMMAND task1 ${_task0_out}/${_case}
+  add_test(NAME task1/${_case} COMMAND task1 ${_task0_out}/${_case}
                                        ${_output_dir}/output.txt)
 endforeach()
 

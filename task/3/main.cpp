@@ -42,8 +42,8 @@ main(int argc, char* argv[])
   llvm::LLVMContext ctx;
   asg::EmitIR emitIR(ctx);
   auto& mod = emitIR(asg);
+
   mod.print(outFile, nullptr, false, true);
-  outFile << '\n';
   if (llvm::verifyModule(mod, &llvm::outs()))
     return 3;
 }

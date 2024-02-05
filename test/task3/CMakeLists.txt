@@ -22,7 +22,7 @@ if(TASK3_REVIVE)
   foreach(_case ${_cases})
     set(_output_dir ${CMAKE_CURRENT_BINARY_DIR}/${_case})
     file(MAKE_DIRECTORY ${_output_dir})
-    add_test(NAME test3/${_case}
+    add_test(NAME task3/${_case}
              COMMAND task3 ${_task2_out}/${_case}/answer.json
                      ${_output_dir}/output.ll)
   endforeach()
@@ -34,7 +34,7 @@ else()
   foreach(_case ${_cases})
     set(_output_dir ${CMAKE_CURRENT_BINARY_DIR}/${_case})
     file(MAKE_DIRECTORY ${_output_dir})
-    add_test(NAME test3/${_case} COMMAND task3 ${_task0_out}/${_case}
+    add_test(NAME task3/${_case} COMMAND task3 ${_task0_out}/${_case}
                                          ${_output_dir}/output.ll)
   endforeach()
 
