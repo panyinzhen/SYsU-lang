@@ -47,6 +47,8 @@ private:
    */
   const char* parse_type(const char* s, Type& v);
 
+  /// 解析类型表达式，注意 \p v 在构建后是由外到内的顺序，需要再调用 turn_texp
+  /// 将内外翻转。
   const char* parse_texp(const char* s, TypeExpr*& v);
   const char* parse_texp_0(const char* s, TypeExpr*& v);
   const char* parse_texp_1(const char* s, TypeExpr*& v);

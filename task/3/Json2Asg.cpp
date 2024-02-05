@@ -158,7 +158,8 @@ Json2Asg::compound_stmt(const llvm::json::Object& jobj)
  *    | '*' texp_2
  *    ;
  *  args
- *    : type (',' type)*
+ *    : %empty
+ *    | type (',' type)*
  *    ;
  *  oct
  *    : [0-9]+
@@ -189,27 +190,28 @@ skip_spaces(const char* s)
 const char*
 parse_base(const char* s, Type& v)
 {
-  if (v.spec != Type::Spec::kINVALID) {
-    ASSERT(v.spec != Type::Spec::kLong);
-    auto p = match(s, "long");
-    ASSERT(p);
-    v.spec = Type::Spec::kLongLong;
-    return p;
-  }
   if (auto p = match(s, "void")) {
+    ASSERT(v.spec == Type::Spec::kINVALID);
     v.spec = Type::Spec::kVoid;
     return p;
   }
   if (auto p = match(s, "char")) {
+    ASSERT(v.spec == Type::Spec::kINVALID);
     v.spec = Type::Spec::kChar;
     return p;
   }
   if (auto p = match(s, "int")) {
+    ASSERT(v.spec == Type::Spec::kINVALID);
     v.spec = Type::Spec::kInt;
     return p;
   }
   if (auto p = match(s, "long")) {
-    v.spec = Type::Spec::kLong;
+    if (v.spec == Type::Spec::kINVALID)
+      v.spec = Type::Spec::kLong;
+    else if (v.spec == Type::Spec::kLong)
+      v.spec = Type::Spec::kLongLong;
+    else
+      ABORT();
     return p;
   }
   if (auto p = match(s, "const")) {
@@ -217,18 +219,6 @@ parse_base(const char* s, Type& v)
     return p;
   }
   return nullptr;
-}
-
-const char*
-parse_bases(const char* s, Type& v)
-{
-  while (true) {
-    auto p = parse_base(s, v);
-    if (!p)
-      return s;
-    s = p;
-    s = skip_spaces(s);
-  }
 }
 
 const char*
@@ -261,17 +251,26 @@ turn_texp(TypeExpr* texp)
 const char*
 Json2Asg::parse_type(const char* s, Type& v)
 {
-  if (auto p = parse_bases(s, v))
+  s = parse_base(s, v);
+  if (!s)
+    return nullptr;
+
+  while (true) {
+    auto p = parse_base(skip_spaces(s), v);
+    if (!p)
+      break;
     s = p;
+  }
+
+  s = parse_texp(skip_spaces(s), v.texp);
+  if (v.texp)
+    v.texp = turn_texp(v.texp); // 将类型表达式内外翻转
 
   s = skip_spaces(s);
-  s = parse_texp(s, v.texp);
+  if (*s != '\0')
+    return nullptr;
 
-  s = skip_spaces(s);
-  if (*s == '\0')
-    return s;
-
-  return nullptr;
+  return s;
 }
 
 const char*
@@ -302,7 +301,7 @@ RULE_2:
   if (auto p = match(s, "(")) {
     std::vector<Decl*> params;
     p = parse_args(skip_spaces(p), params);
-    if (!s)
+    if (!p)
       goto RULE_3;
     p = match(skip_spaces(p), ")");
     if (!p)
@@ -379,10 +378,12 @@ const char*
 Json2Asg::parse_args(const char* s, std::vector<Decl*>& v)
 {
   Type ty;
-  s = parse_type(s, ty);
-  if (!s)
-    return nullptr;
-  ty.texp = turn_texp(ty.texp); // 将类型表达式内外翻转
+  auto p = parse_type(s, ty);
+  if (!p)
+    return s;
+  s = p;
+  if (ty.texp)
+    ty.texp = turn_texp(ty.texp); // 将类型表达式内外翻转
 
   std::vector<Decl*> params;
   auto& decl = mMgr.make<Decl>();
@@ -390,14 +391,15 @@ Json2Asg::parse_args(const char* s, std::vector<Decl*>& v)
   params.push_back(&decl);
 
   while (true) {
-    auto p = match(skip_spaces(s), ",");
+    p = match(skip_spaces(s), ",");
     if (!p)
       break;
     p = parse_type(skip_spaces(p), ty);
     if (!p)
       return nullptr;
     s = p;
-    ty.texp = turn_texp(ty.texp); // 将类型表达式内外翻转
+    if (ty.texp)
+      ty.texp = turn_texp(ty.texp); // 将类型表达式内外翻转
 
     auto& decl = mMgr.make<Decl>();
     decl.type = ty;

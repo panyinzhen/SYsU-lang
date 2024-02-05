@@ -23,6 +23,8 @@ foreach(_case ${_cases})
                                        ${_output_dir}/output.txt)
 endforeach()
 
+message(AUTHOR_WARNING "请在构建 task0-answer 后再使用 task1 的测试项目。")
+
 # 对实验一进行评分
 add_custom_target(
   task1-score

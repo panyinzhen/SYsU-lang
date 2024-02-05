@@ -23,9 +23,11 @@ if(TASK2_REVIVE)
     set(_output_dir ${CMAKE_CURRENT_BINARY_DIR}/${_case})
     file(MAKE_DIRECTORY ${_output_dir})
     add_test(NAME test2/${_case}
-             COMMAND task2 ${_task1_dir}/${_case}/answer.txt
+             COMMAND task2 ${_task1_out}/${_case}/answer.txt
                      ${_output_dir}/output.json)
   endforeach()
+
+  message(AUTHOR_WARNING "在实验二复活：请在构建 task1-answer 后再使用 task2 的测试项目。")
 
 else()
   # 否则以实验零的标准答案作为输入
@@ -35,6 +37,8 @@ else()
     add_test(NAME test2/${_case} COMMAND task2 ${_task0_out}/${_case}
                                          ${_output_dir}/output.json)
   endforeach()
+
+  message(AUTHOR_WARNING "实验二复活已禁用，请在构建 task0-answer 后再使用 task2 的测试项目。")
 
 endif()
 
