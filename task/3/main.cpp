@@ -1,57 +1,49 @@
-#include "Asg2Json.hpp"
-#include "Ast2Asg.hpp"
-#include "CLexer.h"
 #include "EmitIR.hpp"
-#include "InferType.hpp"
+#include "Json2Asg.hpp"
 #include "asg.hpp"
 #include <fstream>
 #include <iostream>
 #include <llvm/IR/Verifier.h>
-
-using namespace antlr_c;
+#include <llvm/Support/MemoryBuffer.h>
 
 int
 main(int argc, char* argv[])
 {
-  std::ifstream fin;
-  if (argc > 1) {
-    fin.open(argv[1]);
-    std::cin.rdbuf(fin.rdbuf());
+  if (argc != 3) {
+    std::cout << "Usage: " << argv[0] << " <input> <output>\n";
+    return -1;
   }
 
-  antlr4::ANTLRInputStream input(std::cin);
-  CLexer lexer(&input);
+  auto InFileOrErr = llvm::MemoryBuffer::getFile(argv[1]);
+  if (auto Err = InFileOrErr.getError()) {
+    std::cout << "Error: unable to open input file: " << argv[1] << '\n';
+    return -2;
+  }
+  auto InFile = std::move(InFileOrErr.get());
 
-  antlr4::CommonTokenStream tokens(&lexer);
-  // tokens.fill();
-  // for (auto token : tokens.getTokens())
-  //   std::cout << token->toString() << std::endl;
+  std::error_code ec;
+  llvm::StringRef outPath(argv[2]);
+  llvm::raw_fd_ostream outFile(outPath, ec);
+  if (ec) {
+    std::cout << "Error: unable to open output file: " << argv[2] << '\n';
+    return -3;
+  }
 
-  CParser parser(&tokens);
-  auto ast = parser.compilationUnit();
-  // std::cout << ast->toStringTree(true) << std::endl;
+  auto json = llvm::json::parse(InFile->getBuffer());
+  if (!json) {
+    std::cout << "Error: unable to parse input file: " << argv[1] << '\n';
+    return 1;
+  }
 
   asg::Obj::Mgr mgr;
-
-  asg::Ast2Asg ast2asg(mgr);
-  auto asg = ast2asg(ast->translationUnit());
-
-  asg::InferType inferType(mgr);
-  inferType(asg);
-
-  if (argc > 2) {
-    asg::Asg2Json asg2json;
-    llvm::json::Value json = asg2json(asg);
-    llvm::outs() << json << '\n';
-  }
+  asg::Json2Asg json2asg(mgr);
+  auto asg = json2asg(json.get());
 
   llvm::LLVMContext ctx;
-
   asg::EmitIR emitIR(ctx);
   auto& mod = emitIR(asg);
-  mod.print(llvm::outs(), nullptr, false, true);
-
-  llvm::outs() << '\n';
+  mod.print(outFile, nullptr, false, true);
+  outFile << '\n';
   if (llvm::verifyModule(mod, &llvm::outs()))
-    return -1;
+    return 3;
 }

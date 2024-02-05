@@ -29,44 +29,42 @@ llvm::Type*
 EmitIR::operator()(const Type& type)
 {
   if (type.texp == nullptr) {
-    switch (type.specs.base) {
-      case Type::Specs::kVoid:
+    switch (type.spec) {
+      case Type::Spec::kVoid:
         return llvm::Type::getVoidTy(_ctx);
 
-      case Type::Specs::kChar:
+      case Type::Spec::kChar:
         return llvm::Type::getInt8Ty(_ctx);
 
-      case Type::Specs::kInt:
-      case Type::Specs::kLong:
+      case Type::Spec::kInt:
+      case Type::Spec::kLong:
         return llvm::Type::getInt32Ty(_ctx);
 
-      case Type::Specs::kLongLong:
+      case Type::Spec::kLongLong:
         return llvm::Type::getInt64Ty(_ctx);
 
       default:
-        ASG_ABORT();
+        ABORT();
     }
   }
 
-  Type subt;
-  subt.cate = type.cate;
-  subt.specs = type.specs;
+  Type subt = type;
   subt.texp = type.texp->sub;
 
-  if (auto p = type.texp->dcast<ArrayType>()) {
+  if (auto p = type.texp->dcst<ArrayType>()) {
     if (p->len == -1)
       return self(subt)->getPointerTo();
     return llvm::ArrayType::get(self(subt), p->len);
   }
 
-  if (auto p = type.texp->dcast<FunctionType>()) {
+  if (auto p = type.texp->dcst<FunctionType>()) {
     std::vector<llvm::Type*> pty;
     for (auto&& i : p->params)
       pty.push_back(self(i->type));
     return llvm::FunctionType::get(self(subt), std::move(pty), false);
   }
 
-  ASG_ABORT();
+  ABORT();
 }
 
 //==============================================================================
@@ -76,28 +74,28 @@ EmitIR::operator()(const Type& type)
 llvm::Value*
 EmitIR::operator()(Expr* obj)
 {
-  if (auto p = obj->dcast<IntegerLiteral>())
+  if (auto p = obj->dcst<IntegerLiteral>())
     return self(p);
 
-  if (auto p = obj->dcast<StringLiteral>())
+  if (auto p = obj->dcst<StringLiteral>())
     return self(p);
 
-  if (auto p = obj->dcast<DeclRefExpr>())
+  if (auto p = obj->dcst<DeclRefExpr>())
     return self(p);
 
-  if (auto p = obj->dcast<UnaryExpr>())
+  if (auto p = obj->dcst<UnaryExpr>())
     return self(p);
 
-  if (auto p = obj->dcast<BinaryExpr>())
+  if (auto p = obj->dcst<BinaryExpr>())
     return self(p);
 
-  if (auto p = obj->dcast<CallExpr>())
+  if (auto p = obj->dcst<CallExpr>())
     return self(p);
 
-  if (auto p = obj->dcast<ImplicitCastExpr>())
+  if (auto p = obj->dcst<ImplicitCastExpr>())
     return self(p);
 
-  ASG_ABORT();
+  ABORT();
 }
 
 llvm::Constant*
@@ -109,9 +107,9 @@ EmitIR::operator()(IntegerLiteral* obj)
 llvm::Constant*
 EmitIR::operator()(StringLiteral* obj)
 {
-  auto p = obj->type.texp->dcast<ArrayType>();
+  auto p = obj->type.texp->dcst<ArrayType>();
   if (!p)
-    ASG_ABORT();
+    ABORT();
 
   auto size = obj->val.size();
   obj->val.resize(p->len - 1);
@@ -157,7 +155,7 @@ EmitIR::operator()(UnaryExpr* obj)
         _intTy);
 
     default:
-      ASG_ABORT();
+      ABORT();
   }
 }
 
@@ -256,13 +254,13 @@ EmitIR::operator()(BinaryExpr* obj)
       return rhtVal;
 
     case BinaryExpr::kIndex: {
-      auto ty = lftVal->getType()->getPointerElementType();
+      auto ty = lftVal->getType();
       auto ptrVal = irb.CreateGEP(ty, lftVal, rhtVal);
       return ptrVal;
     }
 
     default:
-      ASG_ABORT();
+      ABORT();
   }
 }
 
@@ -289,22 +287,18 @@ EmitIR::operator()(ImplicitCastExpr* obj)
   auto& irb = *_curIrb;
   switch (obj->kind) {
     case ImplicitCastExpr::kLValueToRValue: {
-      auto loadVal =
-        irb.CreateLoad(sub->getType()->getPointerElementType(), sub);
+      auto loadVal = irb.CreateLoad(sub->getType(), sub);
       return loadVal;
     }
 
     case ImplicitCastExpr::kIntegralCast:
-      if (obj->type.specs.base < obj->sub->type.specs.base)
+      if (obj->type.spec < obj->sub->type.spec)
         return irb.CreateTrunc(sub, self(obj->type));
       return irb.CreateSExt(sub, self(obj->type));
 
     case ImplicitCastExpr::kArrayToPointerDecay:
-      return irb.CreateBitCast(sub,
-                               sub->getType()
-                                 ->getPointerElementType()
-                                 ->getArrayElementType()
-                                 ->getPointerTo());
+      return irb.CreateBitCast(
+        sub, sub->getType()->getArrayElementType()->getPointerTo());
 
     case ImplicitCastExpr::kFunctionToPointerDecay:
       // return irb.CreateBitCast(sub, sub->getType()->getPointerTo());
@@ -314,7 +308,7 @@ EmitIR::operator()(ImplicitCastExpr* obj)
       return sub;
 
     default:
-      ASG_ABORT();
+      ABORT();
   }
 }
 
@@ -323,19 +317,18 @@ EmitIR::trans_init(llvm::Value* val, Expr* obj)
 {
   auto& irb = *_curIrb;
 
-  if (auto p = obj->dcast<InitListExpr>()) {
-    irb.CreateStore(
-      llvm::ConstantAggregateZero::get(val->getType()->getPointerElementType()),
-      val);
+  if (auto p = obj->dcst<InitListExpr>()) {
+    irb.CreateStore(llvm::ConstantAggregateZero::get(val->getType()), val);
 
     for (int i = 0; i < p->list.size(); ++i) {
       auto ptrVal = irb.CreateBitCast(val,
-                                      val->getType()
-                                        ->getPointerElementType()
+                                      val
+                                        ->getType()
+
                                         ->getArrayElementType()
                                         ->getPointerTo());
       auto elemVal =
-        irb.CreateGEP(ptrVal->getType()->getPointerElementType(),
+        irb.CreateGEP(ptrVal->getType(),
                       ptrVal,
                       llvm::ConstantInt::get(llvm::Type::getInt32Ty(_ctx), i));
       trans_init(elemVal, p->list[i]);
@@ -345,9 +338,8 @@ EmitIR::trans_init(llvm::Value* val, Expr* obj)
   }
 
   auto initVal = self(obj);
-  if (auto p = obj->dcast<StringLiteral>())
-    irb.CreateStore(
-      irb.CreateLoad(val->getType()->getPointerElementType(), initVal), val);
+  if (auto p = obj->dcst<StringLiteral>())
+    irb.CreateStore(irb.CreateLoad(val->getType(), initVal), val);
   else
     irb.CreateStore(initVal, val);
 }
@@ -370,37 +362,37 @@ EmitIR::trans_bool(llvm::Value* cond)
 void
 EmitIR::operator()(Stmt* obj)
 {
-  if (auto p = obj->dcast<NullStmt>())
+  if (auto p = obj->dcst<NullStmt>())
     return;
 
-  if (auto p = obj->dcast<DeclStmt>())
+  if (auto p = obj->dcst<DeclStmt>())
     return self(p);
 
-  if (auto p = obj->dcast<ExprStmt>())
+  if (auto p = obj->dcst<ExprStmt>())
     return self(p);
 
-  if (auto p = obj->dcast<CompoundStmt>())
+  if (auto p = obj->dcst<CompoundStmt>())
     return self(p);
 
-  if (auto p = obj->dcast<IfStmt>())
+  if (auto p = obj->dcst<IfStmt>())
     return self(p);
 
-  if (auto p = obj->dcast<WhileStmt>())
+  if (auto p = obj->dcst<WhileStmt>())
     return self(p);
 
-  if (auto p = obj->dcast<DoStmt>())
+  if (auto p = obj->dcst<DoStmt>())
     return self(p);
 
-  if (auto p = obj->dcast<BreakStmt>())
+  if (auto p = obj->dcst<BreakStmt>())
     return self(p);
 
-  if (auto p = obj->dcast<ContinueStmt>())
+  if (auto p = obj->dcst<ContinueStmt>())
     return self(p);
 
-  if (auto p = obj->dcast<ReturnStmt>())
+  if (auto p = obj->dcst<ReturnStmt>())
     return self(p);
 
-  ASG_ABORT();
+  ABORT();
 }
 
 void
@@ -409,9 +401,9 @@ EmitIR::operator()(DeclStmt* obj)
   auto& irb = *_curIrb;
 
   for (auto&& decl : obj->decls) {
-    auto p = decl->dcast<VarDecl>();
+    auto p = decl->dcst<VarDecl>();
     if (!p)
-      ASG_ABORT();
+      ABORT();
 
     auto val = irb.CreateAlloca(self(p->type), nullptr, decl->name);
     decl->any = std::make_any<llvm::Value*>(val);
@@ -561,13 +553,13 @@ EmitIR::operator()(ReturnStmt* obj)
 void
 EmitIR::operator()(Decl* obj)
 {
-  if (auto p = obj->dcast<VarDecl>())
+  if (auto p = obj->dcst<VarDecl>())
     return self(p);
 
-  if (auto p = obj->dcast<FunctionDecl>())
+  if (auto p = obj->dcst<FunctionDecl>())
     return self(p);
 
-  ASG_ABORT();
+  ABORT();
 }
 
 void

@@ -97,4 +97,4 @@ private:
   void operator()(FunctionDecl* obj);
 };
 
-}
+} // namespace asg

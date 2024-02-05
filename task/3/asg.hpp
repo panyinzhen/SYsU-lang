@@ -1,54 +1,22 @@
 #pragma once
 
 #include <any>
+#include <cstdio>
 #include <memory>
 #include <string>
-#include <unordered_set>
 #include <vector>
 
-namespace asg {
+/// 错误断言，打印文件和行号，方便定位问题。
+#define ASSERT(expr)                                                           \
+  ((expr) || (fprintf(stderr, "asserted at %s:%d\n", __FILE__, __LINE__),      \
+              abort(),                                                         \
+              false))
 
-#define ASG_ABORT()                                                            \
+/// 错误中断，打印文件和行号，方便定位问题。
+#define ABORT()                                                                \
   (fprintf(stderr, "aborted at %s:%d\n", __FILE__, __LINE__), abort())
 
-class Obj
-{
-public:
-  class Mgr : public std::vector<std::unique_ptr<Obj>>
-  {
-  public:
-    template<typename T, typename... Args>
-    T& make(Args... args)
-    {
-      auto ptr = std::make_unique<T>(args...);
-      auto& obj = *ptr;
-      emplace_back(std::move(ptr));
-      return obj;
-    }
-  };
-
-  template<typename... Ts>
-  class Ptr;
-
-public:
-  std::any any; /// 留给遍历器存放任意数据
-
-public:
-  virtual ~Obj() = default;
-
-public:
-  template<typename T>
-  T* dcast()
-  {
-    return dynamic_cast<T*>(this);
-  }
-
-  template<typename T>
-  T& rcast()
-  {
-    return *reinterpret_cast<T*>(this);
-  }
-};
+namespace asg {
 
 template<bool...>
 struct bool_pack;
@@ -59,39 +27,92 @@ using all_true = std::is_same<bool_pack<true, v...>, bool_pack<v..., true>>;
 template<typename T, typename... Ts>
 using is_one_of = std::disjunction<std::is_same<T, Ts>...>;
 
-template<typename... Ts>
-class Obj::Ptr
+struct Obj
 {
-  static_assert(all_true<std::is_convertible_v<Ts*, Obj*>...>::value);
+  std::any any; /// 留给遍历器存放任意数据
 
-public:
-  Obj* _{ nullptr };
+  virtual ~Obj() = default;
 
-public:
-  Ptr() {}
-
-  Ptr(std::nullptr_t) {}
-
-  template<typename T, typename = std::enable_if_t<is_one_of<T, Ts...>::value>>
-  Ptr(T* p)
-    : _(p)
+  template<typename T>
+  T* dcst()
   {
+    return dynamic_cast<T*>(this);
   }
 
-  operator bool() { return _ != nullptr; }
-
-public:
-  template<typename T, typename = std::enable_if_t<is_one_of<T, Ts...>::value>>
-  T* dcast()
+  template<typename T>
+  T* scst()
   {
-    return dynamic_cast<T*>(_);
+    return static_cast<T*>(this);
   }
 
-  template<typename T, typename = std::enable_if_t<is_one_of<T, Ts...>::value>>
-  T& rcast()
+  template<typename T>
+  T& rcst()
   {
-    return *reinterpret_cast<T>(_);
+    return *reinterpret_cast<T*>(this);
   }
+
+  struct Mgr : public std::vector<std::unique_ptr<Obj>>
+  {
+    template<typename T, typename... Args>
+    T& make(Args... args)
+    {
+      auto ptr = std::make_unique<T>(args...);
+      auto& obj = *ptr;
+      emplace_back(std::move(ptr));
+      return obj;
+    }
+  };
+
+  /// 检查循环引用，防止无限递归。
+  struct Walked
+  {
+    Obj* mObj;
+
+    Walked(Obj* obj)
+      : mObj(obj)
+    {
+      ASSERT(!mObj->any.has_value());
+      mObj->any = nullptr;
+    }
+
+    ~Walked() { mObj->any.reset(); }
+  };
+
+  /// 有限泛型的指针模板类
+  template<typename... Ts>
+  struct Ptr
+  {
+    static_assert(all_true<std::is_convertible_v<Ts*, Obj*>...>::value);
+
+    Obj* mObj{ nullptr };
+
+    Ptr() {}
+
+    Ptr(std::nullptr_t) {}
+
+    template<typename T,
+             typename = std::enable_if_t<is_one_of<T, Ts...>::value>>
+    Ptr(T* p)
+      : mObj(p)
+    {
+    }
+
+    operator bool() { return mObj != nullptr; }
+
+    template<typename T,
+             typename = std::enable_if_t<is_one_of<T, Ts...>::value>>
+    T* dcst()
+    {
+      return dynamic_cast<T*>(mObj);
+    }
+
+    template<typename T,
+             typename = std::enable_if_t<is_one_of<T, Ts...>::value>>
+    T& rcst()
+    {
+      return *reinterpret_cast<T>(mObj);
+    }
+  };
 };
 
 //==============================================================================
@@ -120,10 +141,10 @@ struct Type
   {
     kNone,
     kConst,
-    kVolatile,
+    // kVolatile,
   };
 
-  Spec base{ Spec::kINVALID };
+  Spec spec{ Spec::kINVALID };
   Qual qual{ Qual::kNone };
 
   TypeExpr* texp{ nullptr };
@@ -158,17 +179,15 @@ struct Decl;
 
 struct Expr : public Obj
 {
-  Type type;
-
-  enum Cate
+  enum class Cate : std::uint8_t
   {
     kINVALID,
     kRValue,
     kLValue,
-  } cate{ kINVALID };
+  };
 
-protected:
-  Expr() = default;
+  Type type;
+  Cate cate{ Cate::kINVALID };
 };
 
 struct IntegerLiteral : public Expr
@@ -184,6 +203,11 @@ struct StringLiteral : public Expr
 struct DeclRefExpr : public Expr
 {
   Decl* decl{ nullptr };
+};
+
+struct ParenExpr : public Expr
+{
+  Expr* sub{ nullptr };
 };
 
 struct UnaryExpr : public Expr
@@ -238,6 +262,9 @@ struct InitListExpr : public Expr
   std::vector<Expr*> list;
 };
 
+struct ImplicitInitExpr : public Expr
+{};
+
 struct ImplicitCastExpr : public Expr
 {
   enum
@@ -259,10 +286,7 @@ struct ImplicitCastExpr : public Expr
 struct FunctionDecl;
 
 struct Stmt : public Obj
-{
-protected:
-  Stmt() = default;
-};
+{};
 
 struct NullStmt : public Stmt
 {};
@@ -324,9 +348,6 @@ struct Decl : public Obj
 {
   Type type;
   std::string name;
-
-protected:
-  Decl() = default;
 };
 
 struct VarDecl : public Decl
