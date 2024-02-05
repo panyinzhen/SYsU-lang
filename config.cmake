@@ -27,3 +27,6 @@ set(ANTLR4_JAR_LOCATION "${CMAKE_SOURCE_DIR}/antlr/antlr-4.13.1-complete.jar")
 # llvm clang
 set(LLVM_DIR "${CMAKE_SOURCE_DIR}/llvm/install/lib/cmake/llvm")
 set(CLANG_EXECUTABLE "${CMAKE_SOURCE_DIR}/llvm/install/bin/clang")
+
+# 测试运行时限（秒）
+set(CTEST_TEST_TIMEOUT 3)
