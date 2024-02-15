@@ -243,6 +243,7 @@ turn_texp(TypeExpr* texp)
     return texp;
   auto innerMost = turn_texp(texp->sub);
   innerMost->sub = texp;
+  texp->sub = nullptr;
   return innerMost;
 }
 
