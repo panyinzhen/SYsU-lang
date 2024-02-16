@@ -12,21 +12,38 @@ set(TASK2_WITH "bison")
 set(TASK2_REVIVE OFF)
 
 # 是否在实验三复活，ON或OFF
-set(TASK3_REVIVE ON)
+set(TASK3_REVIVE OFF)
 
 # 是否在实验四复活，ON或OFF
-set(TASK4_REVIVE ON)
+set(TASK4_REVIVE OFF)
 
 # ANTLR4
-set(antlr4-runtime_DIR
-    "${CMAKE_SOURCE_DIR}/antlr/install/lib/cmake/antlr4-runtime")
-set(antlr4-generator_DIR
-    "${CMAKE_SOURCE_DIR}/antlr/install/lib/cmake/antlr4-generator")
-set(ANTLR4_JAR_LOCATION "${CMAKE_SOURCE_DIR}/antlr/antlr-4.13.1-complete.jar")
+if(DEFINED ENV{ANTLR_DIR})
+    message("ANTLR目录为 $ENV{ANTLR_DIR}")
+    set(antlr4-runtime_DIR
+        "$ENV{ANTLR_DIR}/install/lib/cmake/antlr4-runtime")
+    set(antlr4-generator_DIR
+        "$ENV{ANTLR_DIR}/install/lib/cmake/antlr4-generator")
+    set(ANTLR4_JAR_LOCATION "$ENV{ANTLR_DIR}/antlr-4.13.1-complete.jar")
+else()
+    message("ANTLR目录为 ${CMAKE_SOURCE_DIR}/antlr")
+    set(antlr4-runtime_DIR
+        "${CMAKE_SOURCE_DIR}/antlr/install/lib/cmake/antlr4-runtime")
+    set(antlr4-generator_DIR
+        "${CMAKE_SOURCE_DIR}/antlr/install/lib/cmake/antlr4-generator")
+    set(ANTLR4_JAR_LOCATION "${CMAKE_SOURCE_DIR}/antlr/antlr-4.13.1-complete.jar")
+endif()
 
 # llvm clang
-set(LLVM_DIR "${CMAKE_SOURCE_DIR}/llvm/install/lib/cmake/llvm")
-set(CLANG_EXECUTABLE "${CMAKE_SOURCE_DIR}/llvm/install/bin/clang")
+if(DEFINED ENV{LLVM_DIR})
+    message("LLVM目录为 $ENV{LLVM_DIR}")
+    set(LLVM_DIR "$ENV{LLVM_DIR}/install/lib/cmake/llvm")
+    set(CLANG_EXECUTABLE "$ENV{LLVM_DIR}/install/bin/clang")
+else()
+    message("LLVM目录为 ${CMAKE_SOURCE_DIR}/llvm")
+    set(LLVM_DIR "${CMAKE_SOURCE_DIR}/llvm/install/lib/cmake/llvm")
+    set(CLANG_EXECUTABLE "${CMAKE_SOURCE_DIR}/llvm/install/bin/clang")
+endif()
 
 # 测试运行时限（秒）
 set(CTEST_TEST_TIMEOUT 3)

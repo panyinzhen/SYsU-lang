@@ -1,4 +1,5 @@
 {
+  "files.autoSave": "afterDelay",
   "files.associations": {
     "*.json": "jsonc",
     "TODO": "markdown",
@@ -73,6 +74,9 @@
     "typeinfo": "cpp",
     "__nullptr": "cpp",
     "*.inc": "cpp",
-    "*.y": "cpp"
-  }
+    "*.y": "cpp",
+    "CMakeLists.txt": "cmake",
+  },
+  "editor.unfoldOnClickAfterEndOfLine": false,
+  "files.eol": "\n",
 }
