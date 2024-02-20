@@ -51,7 +51,8 @@ Json2Asg::gety(const llvm::json::Object& jobj)
     return iter->second;
 
   Type ty;
-  ASSERT(parse_type(texpStr.c_str(), ty));
+  auto s = parse_type(texpStr.c_str(), ty);
+  ASSERT(s && *s == '\0');
   mTyMap.emplace(texpStr, ty);
   return ty;
 }
@@ -266,10 +267,6 @@ Json2Asg::parse_type(const char* s, Type& v)
   s = parse_texp(skip_spaces(s), v.texp);
   if (v.texp)
     v.texp = turn_texp(v.texp); // 将类型表达式内外翻转
-
-  s = skip_spaces(s);
-  if (*s != '\0')
-    return nullptr;
 
   return s;
 }
