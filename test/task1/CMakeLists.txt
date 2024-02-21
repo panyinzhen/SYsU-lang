@@ -1,4 +1,3 @@
-file(REAL_PATH ../cases _cases_dir)
 file(REAL_PATH ../rtlib _rtlib_dir)
 file(REAL_PATH ../task0 _task0_out BASE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
@@ -6,7 +5,7 @@ file(REAL_PATH ../task0 _task0_out BASE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 add_custom_target(
   task1-answer
   bash ${CMAKE_CURRENT_SOURCE_DIR}/answer.sh ${CLANG_EXECUTABLE} ${_rtlib_dir}
-  ${_cases_dir} ${CMAKE_CURRENT_BINARY_DIR}
+  ${TASK_CASES_DIR} ${CMAKE_CURRENT_BINARY_DIR}
   USES_TERMINAL
   SOURCES answer.sh)
 
@@ -21,13 +20,16 @@ add_custom_target(
 
 add_dependencies(task1-score task1 task1-answer task0-answer)
 
-# 为每个测试用例生成一个测试
-file(
-  GLOB_RECURSE _cases
-  RELATIVE ${_cases_dir}
-  ${_cases_dir}/*.sysu.c)
+# 生成测例权重文件
+if(NOT TASK1_CASES_WEIGHT_TXT)
+  set(_weight_txt ${CMAKE_CURRENT_BINARY_DIR}/weight.txt)
+  string(REPLACE ";" "\n" _lines "${TEST_CASES}")
+  file(WRITE ${_weight_txt} "${_lines}")
+  set(TASK1_CASES_WEIGHT_TXT ${_weight_txt})
+endif()
 
-foreach(_case ${_cases})
+# 为每个测例创建一个测试
+foreach(_case ${TEST_CASES})
   set(_output_dir ${CMAKE_CURRENT_BINARY_DIR}/${_case})
   file(MAKE_DIRECTORY ${_output_dir})
   add_test(NAME task1/${_case} COMMAND task1 ${_task0_out}/${_case}

@@ -17,6 +17,10 @@ set(TASK3_REVIVE OFF)
 # 是否在实验四复活，ON或OFF
 set(TASK4_REVIVE OFF)
 
+################################################################################
+## 以下内容为内部环境配置，一般情况下不需要学生修改，学生本地的修改对实验评测无影响。
+################################################################################
+
 # ANTLR4
 if(DEFINED ENV{ANTLR_DIR})
     message("ANTLR目录为 $ENV{ANTLR_DIR}")
@@ -47,3 +51,15 @@ endif()
 
 # 测试运行时限（秒）
 set(CTEST_TEST_TIMEOUT 3)
+
+# 实验一测例权重文件
+set(TASK1_CASES_WEIGHT_TXT "")
+
+# 实验二测例权重文件
+set(TASK2_CASES_WEIGHT_TXT "")
+
+# 实验三测例权重文件
+set(TASK3_CASES_WEIGHT_TXT "")
+
+# 实验四测例权重文件
+set(TASK4_CASES_WEIGHT_TXT "")

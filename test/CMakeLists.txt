@@ -20,6 +20,13 @@ if(NOT EXISTS ${CTEST_COMMAND})
   message(FATAL_ERROR "未找到 CTest 命令，请检查 CMake 是否正确安装。")
 endif()
 
+# 搜索所有测例
+set(TEST_CASES_DIR ${CMAKE_CURRENT_SOURCE_DIR}/cases)
+file(
+  GLOB_RECURSE TEST_CASES
+  RELATIVE ${TEST_CASES_DIR}
+  "${TEST_CASES_DIR}/*.sysu.c")
+
 add_subdirectory(task0)
 add_subdirectory(task1)
 add_subdirectory(task2)
