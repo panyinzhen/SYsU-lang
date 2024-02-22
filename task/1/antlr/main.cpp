@@ -1,6 +1,63 @@
-#include "SYsU_lang.h"
+#include "SYsU_lang.h" // 确保这里的头文件名与您生成的词法分析器匹配
 #include <fstream>
 #include <iostream>
+
+void
+print_token(const antlr4::Token* token,
+            const antlr4::CommonTokenStream& tokens,
+            std::ofstream& outFile,
+            const antlr4::Lexer& lexer)
+{
+  auto& vocabulary = lexer.getVocabulary();
+
+  auto tokenTypeName =
+    std::string(vocabulary.getSymbolicName(token->getType()));
+
+  if (tokenTypeName.empty())
+    tokenTypeName = "<UNKNOWN>"; // 处理可能的空字符串情况
+
+  auto locInfo = " Loc=<" + std::to_string(token->getLine()) + ":" +
+                 std::to_string(token->getCharPositionInLine() + 1) + ">";
+
+  bool startOfLine;
+  if (token->getText() == "<EOF>") {
+    startOfLine = false;
+  } else {
+    startOfLine =
+      (token->getCharPositionInLine() == 0) ||
+      (token->getCharPositionInLine() > 0 &&
+       tokens.get(token->getTokenIndex() - 1)->getLine() != token->getLine());
+  }
+
+  bool leadingSpace = false;
+  if (token->getTokenIndex() > 0) {
+    auto prevToken = tokens.get(token->getTokenIndex() - 1);
+
+    auto currentTokenLine = token->getLine();
+    auto currentTokenStartColumn = token->getCharPositionInLine();
+
+    auto prevTokenLine = prevToken->getLine();
+
+    if (currentTokenLine != prevTokenLine && currentTokenStartColumn > 0) {
+      leadingSpace = true;
+    } else {
+      auto prevTokenStartColumn = prevToken->getCharPositionInLine();
+      auto prevTokenLength = prevToken->getText().length();
+      auto prevTokenStopColumn = prevTokenStartColumn + prevTokenLength - 1;
+
+      if (currentTokenStartColumn - prevTokenStopColumn > 1) {
+        leadingSpace = true;
+      }
+    }
+  }
+
+  outFile << tokenTypeName << " '" << token->getText() << "'";
+  if (startOfLine)
+    outFile << "\t [StartOfLine]";
+  if (leadingSpace)
+    outFile << " [LeadingSpace]";
+  outFile << locInfo << std::endl;
+}
 
 int
 main(int argc, char* argv[])
@@ -31,8 +88,7 @@ main(int argc, char* argv[])
 
   antlr4::CommonTokenStream tokens(&lexer);
   tokens.fill();
-  for (auto&& token : tokens.getTokens()) {
-    outFile << token->toString() << std::endl;
-    // TODO: 以 clang 的格式输出
-  }
+
+  for (auto&& token : tokens.getTokens())
+    print_token(token, tokens, outFile, lexer);
 }
