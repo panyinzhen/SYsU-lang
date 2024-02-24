@@ -30,6 +30,7 @@ macro(add_task task)
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 endmacro()
 
+add_task(0)
 add_task(1)
 add_task(2)
 add_task(3)

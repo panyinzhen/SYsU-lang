@@ -19,3 +19,14 @@ foreach(_case ${_cases})
   cmake_path(GET _output_dir PARENT_PATH _parent_dir)
   file(MAKE_DIRECTORY ${_parent_dir})
 endforeach()
+
+# 对实验进行评分
+add_custom_target(
+  task0-score
+  ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/score.py
+  ${CMAKE_CURRENT_BINARY_DIR} $<TARGET_FILE:task0>
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  USES_TERMINAL
+  SOURCES score.py)
+
+add_dependencies(task0-score task0)
