@@ -43,10 +43,12 @@ if(DEFINED ENV{LLVM_DIR})
     message("LLVM目录为 $ENV{LLVM_DIR}")
     set(LLVM_DIR "$ENV{LLVM_DIR}/install/lib/cmake/llvm")
     set(CLANG_EXECUTABLE "$ENV{LLVM_DIR}/install/bin/clang")
+    set(CLANG_PLUS_EXECUTABLE "$ENV{LLVM_DIR}/install/bin/clang++")
 else()
     message("LLVM目录为 ${CMAKE_SOURCE_DIR}/llvm")
     set(LLVM_DIR "${CMAKE_SOURCE_DIR}/llvm/install/lib/cmake/llvm")
     set(CLANG_EXECUTABLE "${CMAKE_SOURCE_DIR}/llvm/install/bin/clang")
+    set(CLANG_PLUS_EXECUTABLE "${CMAKE_SOURCE_DIR}/llvm/install/bin/clang++")
 endif()
 
 # 测试运行时限（秒）

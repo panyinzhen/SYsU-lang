@@ -6,19 +6,9 @@ file(REAL_PATH ../task3 _task3_out BASE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 add_custom_target(
   task4-answer
   bash ${CMAKE_CURRENT_SOURCE_DIR}/answer.sh ${CLANG_EXECUTABLE} ${_rtlib_dir}
-  ${TASK_CASES_DIR} ${CMAKE_CURRENT_BINARY_DIR}
+  ${TEST_CASES_DIR} ${CMAKE_CURRENT_BINARY_DIR}
   USES_TERMINAL
   SOURCES answer.sh)
-
-# 对实验进行评分
-add_custom_target(
-  task4-score
-  ${CTEST_COMMAND}
-  COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/score.py
-  USES_TERMINAL
-  SOURCES score.py)
-
-add_dependencies(task4-score task4 task4-answer test-rtlib)
 
 # 生成测例权重文件
 if(NOT TASK4_CASES_WEIGHT_TXT)
@@ -27,6 +17,19 @@ if(NOT TASK4_CASES_WEIGHT_TXT)
   file(WRITE ${_weight_txt} "${_lines}")
   set(TASK4_CASES_WEIGHT_TXT ${_weight_txt})
 endif()
+
+# 对实验进行评分
+add_custom_target(
+  task4-score
+  ${CTEST_COMMAND}
+  COMMAND
+    ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/score.py
+    ${CMAKE_CURRENT_BINARY_DIR} ${TASK4_CASES_WEIGHT_TXT}
+    ${CLANG_PLUS_EXECUTABLE} ${_rtlib_path} 10
+  USES_TERMINAL
+  SOURCES score.py)
+
+add_dependencies(task4-score task4 task4-answer test-rtlib)
 
 # 为每个测例创建一个测试
 if(TASK4_REVIVE)

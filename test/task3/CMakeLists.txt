@@ -10,17 +10,6 @@ add_custom_target(
   USES_TERMINAL
   SOURCES answer.sh)
 
-# 对实验进行评分
-add_custom_target(
-  task3-score
-  ${CTEST_COMMAND}
-  COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/score.py
-  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-  USES_TERMINAL
-  SOURCES score.py)
-
-add_dependencies(task3-score task3 task3-answer test-rtlib)
-
 # 生成测例权重文件
 if(NOT TASK3_CASES_WEIGHT_TXT)
   set(_weight_txt ${CMAKE_CURRENT_BINARY_DIR}/weight.txt)
@@ -28,6 +17,20 @@ if(NOT TASK3_CASES_WEIGHT_TXT)
   file(WRITE ${_weight_txt} "${_lines}")
   set(TASK3_CASES_WEIGHT_TXT ${_weight_txt})
 endif()
+
+# 对实验进行评分
+add_custom_target(
+  task3-score
+  ${CTEST_COMMAND}
+  COMMAND
+    ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/score.py
+    ${CMAKE_CURRENT_BINARY_DIR} ${TASK3_CASES_WEIGHT_TXT}
+    ${CLANG_PLUS_EXECUTABLE} ${_rtlib_path} 10
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  USES_TERMINAL
+  SOURCES score.py)
+
+add_dependencies(task3-score task3 task3-answer test-rtlib)
 
 # 为每个测例创建一个测试
 if(TASK3_REVIVE)

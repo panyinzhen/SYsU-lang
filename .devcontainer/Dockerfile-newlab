@@ -1,6 +1,7 @@
 # syntax=docker/dockerfile:1.4
-ARG BASE_IMAGE=ubuntu:22.04
-FROM ${BASE_IMAGE}
+ARG BASE_IMAGE=ubuntu
+ARG BASE_TAG=22.04
+FROM ${BASE_IMAGE}:${BASE_TAG}
 COPY antlr/ /opt/SYsU-lang/antlr/
 COPY llvm/ /opt/SYsU-lang/llvm/
 # Run to install the required packages and clean up
@@ -10,10 +11,9 @@ apt-get upgrade -y
 apt-get install -y --no-install-recommends \
     libantlr4-runtime-dev default-jre-headless pkg-config uuid-dev flex bison \
     clang llvm-dev zlib1g-dev libzstd-dev lld python3 cmake ninja-build git \
-    wget curl zip unzip ca-certificates build-essential vim
+    wget curl zip unzip ca-certificates build-essential vim gdb
 apt-get autoremove -y
 apt-get clean -y
-rm -rf /var/lib/apt/lists/*
 EOF
 # Install ANTLR and LLVM
 RUN <<EOF

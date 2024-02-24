@@ -5,20 +5,9 @@ file(REAL_PATH ../task0 _task0_out BASE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 add_custom_target(
   task1-answer
   bash ${CMAKE_CURRENT_SOURCE_DIR}/answer.sh ${CLANG_EXECUTABLE} ${_rtlib_dir}
-  ${TASK_CASES_DIR} ${CMAKE_CURRENT_BINARY_DIR}
+  ${TEST_CASES_DIR} ${CMAKE_CURRENT_BINARY_DIR}
   USES_TERMINAL
   SOURCES answer.sh)
-
-# 对实验进行评分
-add_custom_target(
-  task1-score
-  ${CTEST_COMMAND}
-  COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/score.py
-  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-  USES_TERMINAL
-  SOURCES score.py)
-
-add_dependencies(task1-score task1 task1-answer task0-answer)
 
 # 生成测例权重文件
 if(NOT TASK1_CASES_WEIGHT_TXT)
@@ -27,6 +16,18 @@ if(NOT TASK1_CASES_WEIGHT_TXT)
   file(WRITE ${_weight_txt} "${_lines}")
   set(TASK1_CASES_WEIGHT_TXT ${_weight_txt})
 endif()
+
+# 对实验进行评分
+add_custom_target(
+  task1-score
+  ${CTEST_COMMAND}
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/score.py
+          ${CMAKE_CURRENT_BINARY_DIR} ${TASK1_CASES_WEIGHT_TXT}
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  USES_TERMINAL
+  SOURCES score.py)
+
+add_dependencies(task1-score task1 task1-answer task0-answer)
 
 # 为每个测例创建一个测试
 foreach(_case ${TEST_CASES})

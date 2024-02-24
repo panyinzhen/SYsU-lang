@@ -14,6 +14,7 @@ file(
   rtlib/*.h)
 add_library(test-rtlib STATIC ${_rtlib_src})
 target_include_directories(test-rtlib PUBLIC rtlib/include)
+set(_rtlib_path ${CMAKE_CURRENT_BINARY_DIR})
 
 file(REAL_PATH ${CMAKE_COMMAND}/../ctest CTEST_COMMAND)
 if(NOT EXISTS ${CTEST_COMMAND})

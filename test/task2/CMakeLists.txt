@@ -6,20 +6,9 @@ file(REAL_PATH ../task1 _task1_out BASE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 add_custom_target(
   task2-answer
   bash ${CMAKE_CURRENT_SOURCE_DIR}/answer.sh ${CLANG_EXECUTABLE} ${_rtlib_dir}
-  ${TASK_CASES_DIR} ${CMAKE_CURRENT_BINARY_DIR}
+  ${TEST_CASES_DIR} ${CMAKE_CURRENT_BINARY_DIR}
   USES_TERMINAL
   SOURCES answer.sh)
-
-# 对实验进行评分
-add_custom_target(
-  task2-score
-  ${CTEST_COMMAND}
-  COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/score.py
-  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-  USES_TERMINAL
-  SOURCES score.py)
-
-add_dependencies(task2-score task2 task2-answer)
 
 # 生成测例权重文件
 if(NOT TASK2_CASES_WEIGHT_TXT)
@@ -29,12 +18,24 @@ if(NOT TASK2_CASES_WEIGHT_TXT)
   set(TASK2_CASES_WEIGHT_TXT ${_weight_txt})
 endif()
 
+# 对实验进行评分
+add_custom_target(
+  task2-score
+  ${CTEST_COMMAND}
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/score.py
+          ${CMAKE_CURRENT_BINARY_DIR} ${TASK2_CASES_WEIGHT_TXT}
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  USES_TERMINAL
+  SOURCES score.py)
+
+add_dependencies(task2-score task2 task2-answer)
+
 # 为每个测例创建一个测试
 if(TASK2_REVIVE)
   # 如果启用复活，则将前一个实验的标准答案作为输入
   add_dependencies(task2-score task1-answer)
 
-  foreach(_case ${TASK_CASES})
+  foreach(_case ${TEST_CASES})
     set(_output_dir ${CMAKE_CURRENT_BINARY_DIR}/${_case})
     file(MAKE_DIRECTORY ${_output_dir})
     add_test(NAME task2/${_case}
@@ -48,7 +49,7 @@ else()
   # 否则以实验零的标准答案作为输入
   add_dependencies(task2-score task0-answer)
 
-  foreach(_case ${TASK_CASES})
+  foreach(_case ${TEST_CASES})
     set(_output_dir ${CMAKE_CURRENT_BINARY_DIR}/${_case})
     file(MAKE_DIRECTORY ${_output_dir})
     add_test(NAME task2/${_case} COMMAND task2 ${_task0_out}/${_case}
