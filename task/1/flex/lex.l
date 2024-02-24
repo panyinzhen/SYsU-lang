@@ -20,6 +20,8 @@ IS    ((u|U)|(u|U)?(l|L|ll|LL)|(l|L|ll|LL)(u|U))
 
 %%
 
+^#[^\n]*     /* 屏蔽以#开头的行 */
+
 "auto"        { ADDCOL(); COME(AUTO); }
 "_Bool"       { ADDCOL(); COME(BOOL); }
 "break"       { ADDCOL(); COME(BREAK); }
@@ -96,22 +98,22 @@ L?\"(\\.|[^\\"\n])*\" { ADDCOL(); COME(STRING_LITERAL); }
 ">="        { ADDCOL(); COME(GE_OP); }
 "=="        { ADDCOL(); COME(EQ_OP); }
 "!="        { ADDCOL(); COME(NE_OP); }
-";"         { ADDCOL(); COME(';'); }
-("{"|"<%")  { ADDCOL(); COME('{'); }
-("}"|"%>")  { ADDCOL(); COME('}'); }
-","         { ADDCOL(); COME(','); }
+";"         { ADDCOL(); COME(SEMI); }
+("{"|"<%")  { ADDCOL(); COME(L_BRACE); }
+("}"|"%>")  { ADDCOL(); COME(R_BRACE); }
+","         { ADDCOL(); COME(COMMA); }
 ":"         { ADDCOL(); COME(':'); }
-"="         { ADDCOL(); COME('='); }
-"("         { ADDCOL(); COME('('); }
-")"         { ADDCOL(); COME(')'); }
-("["|"<:")  { ADDCOL(); COME('['); }
-("]"|":>")  { ADDCOL(); COME(']'); }
+"="         { ADDCOL(); COME(EQUAL); }
+"("         { ADDCOL(); COME(L_PAREN); }
+")"         { ADDCOL(); COME(R_PAREN); }
+("["|"<:")  { ADDCOL(); COME(L_SQUARE); }
+("]"|":>")  { ADDCOL(); COME(R_SQUARE); }
 "."         { ADDCOL(); COME('.'); }
 "&"         { ADDCOL(); COME('&'); }
 "!"         { ADDCOL(); COME('!'); }
 "~"         { ADDCOL(); COME('~'); }
-"-"         { ADDCOL(); COME('-'); }
-"+"         { ADDCOL(); COME('+'); }
+"-"         { ADDCOL(); COME(MINUS); }
+"+"         { ADDCOL(); COME(PLUS); }
 "*"         { ADDCOL(); COME('*'); }
 "/"         { ADDCOL(); COME('/'); }
 "%"         { ADDCOL(); COME('%'); }

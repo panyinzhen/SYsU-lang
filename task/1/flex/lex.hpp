@@ -74,6 +74,17 @@ enum Id
   CONTINUE,
   BREAK,
   RETURN,
+  L_BRACE,
+  R_BRACE,
+  L_PAREN,
+  R_PAREN,
+  SEMI,
+  EQUAL,
+  PLUS,
+  COMMA,
+  L_SQUARE,
+  R_SQUARE,
+  MINUS,
 };
 
 const char*
