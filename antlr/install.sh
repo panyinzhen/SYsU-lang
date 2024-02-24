@@ -1,7 +1,9 @@
-if [ ! -f antlr-4.13.1-complete.jar ]
+#!/bin/bash
+
+if [ ! -f antlr-4.13.1-complete.jar ]; then
   wget https://www.antlr.org/download/antlr-4.13.1-complete.jar
 fi
-if [ ! -f antlr4-cpp-runtime-4.13.1-source.zip ]
+if [ ! -f antlr4-cpp-runtime-4.13.1-source.zip ]; then
   wget https://www.antlr.org/download/antlr4-cpp-runtime-4.13.1-source.zip
 fi
 rm -rf source build install

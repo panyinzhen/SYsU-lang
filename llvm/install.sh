@@ -1,10 +1,12 @@
-if [ ! -f llvm-17.0.6.src.tar.xz ]
+#!/bin/bash
+
+if [ ! -f llvm-17.0.6.src.tar.xz ]; then
   wget https://github.com/llvm/llvm-project/releases/download/llvmorg-17.0.6/llvm-17.0.6.src.tar.xz
 fi
-if [ ! -f clang-17.0.6.src.tar.xz ]
+if [ ! -f clang-17.0.6.src.tar.xz ]; then
   wget https://github.com/llvm/llvm-project/releases/download/llvmorg-17.0.6/clang-17.0.6.src.tar.xz
 fi
-if [ ! -f cmake-17.0.6.src.tar.xz ]
+if [ ! -f cmake-17.0.6.src.tar.xz ]; then
   wget https://github.com/llvm/llvm-project/releases/download/llvmorg-17.0.6/cmake-17.0.6.src.tar.xz
 fi
 rm -rf llvm clang cmake build install
