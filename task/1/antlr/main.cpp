@@ -1,6 +1,17 @@
 #include "SYsU_lang.h" // 确保这里的头文件名与您生成的词法分析器匹配
 #include <fstream>
 #include <iostream>
+#include <unordered_map>
+
+// 映射定义，将ANTLR的tokenTypeName映射到clang的格式
+std::unordered_map<std::string, std::string> tokenTypeMapping = {
+  { "Int", "int" },           { "Identifier", "identifier" },
+  { "LeftParen", "l_paren" }, { "RightParen", "r_paren" },
+  { "Return", "return" },     { "RightBrace", "r_brace" },
+  { "LeftBrace", "l_brace" }, { "Constant", "numeric_constant" },
+  { "Semi", "semi" },         { "EOF", "eof" },
+  // 在这里继续添加其他映射
+};
 
 void
 print_token(const antlr4::Token* token,
@@ -15,6 +26,11 @@ print_token(const antlr4::Token* token,
 
   if (tokenTypeName.empty())
     tokenTypeName = "<UNKNOWN>"; // 处理可能的空字符串情况
+
+  auto mappedNameIt = tokenTypeMapping.find(tokenTypeName);
+
+  if (mappedNameIt != tokenTypeMapping.end())
+    tokenTypeName = mappedNameIt->second;
 
   auto locInfo = " Loc=<" + std::to_string(token->getLine()) + ":" +
                  std::to_string(token->getCharPositionInLine() + 1) + ">";
@@ -51,7 +67,13 @@ print_token(const antlr4::Token* token,
     }
   }
 
-  outFile << tokenTypeName << " '" << token->getText() << "'";
+  if (token->getText() == "<EOF>") {
+    outFile << tokenTypeName << " ''"; // 如果是<EOF>，则不输出token的文本
+  } else {
+    outFile << tokenTypeName << " '" << token->getText()
+            << "'"; // 否则，正常输出
+  }
+
   if (startOfLine)
     outFile << "\t [StartOfLine]";
   if (leadingSpace)
