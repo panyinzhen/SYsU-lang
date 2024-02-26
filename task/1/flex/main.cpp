@@ -38,6 +38,8 @@ escape(std::string_view sv)
       case '\'':
         result += "\\\'";
         break;
+      case '\0':
+        break;
       default:
         result += c;
         break;
@@ -55,7 +57,7 @@ print_token()
   if (lex::g.mLeadingSpace)
     outFile << "\t[LeadingSpace]";
   outFile << "\tLoc=<" << lex::g.mFile << ':' << lex::g.mLine << ':'
-          << lex::g.mColumn << ">\n";
+          << lex::g.mColumn - yyleng << ">\n";
   outFile << std::flush;
 }
 

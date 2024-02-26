@@ -20,7 +20,7 @@ IS    ((u|U)|(u|U)?(l|L|ll|LL)|(l|L|ll|LL)(u|U))
 
 %%
 
-^#[^\n]*     /* 屏蔽以#开头的行 */
+^#[^\n]*      { yylineno = read_path(yytext); return ~YYEOF; } /* 从预处理信息中读入路径 */
 
 "auto"        { ADDCOL(); COME(AUTO); }
 "_Bool"       { ADDCOL(); COME(BOOL); }
@@ -122,6 +122,7 @@ L?\"(\\.|[^\\"\n])*\" { ADDCOL(); COME(STRING_LITERAL); }
 "^"         { ADDCOL(); COME('^'); }
 "|"         { ADDCOL(); COME('|'); }
 "?"         { ADDCOL(); COME('?'); }
+<<EOF>>     { ADDCOL(); COME(YYEOF); }
 
 [ \t\v\n\f]   { spaces(yytext, yyleng); }
 

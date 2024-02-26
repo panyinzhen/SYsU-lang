@@ -31,14 +31,17 @@ static const char* kTokenNames[] = {
   "l_brace",      "r_brace",     "l_paren",
   "r_paren",      "semi",        "equal",
   "plus",         "comma",       "l_square",
-  "r_square",      "minus"
+  "r_square",     "minus"
 };
 
 const char*
 id2str(Id id)
 {
   static char sCharBuf[2] = { 0, 0 };
-  if (id < Id::IDENTIFIER) {
+  if (id == Id::YYEOF) {
+    return "eof";
+  }
+  else if (id < Id::IDENTIFIER) {
     sCharBuf[0] = char(id);
     return sCharBuf;
   }
@@ -67,15 +70,26 @@ spaces(const char* yytext, int yyleng)
   g.mLeadingSpace = true;
   for (int i = 0; i < yyleng; ++i) {
     if (yytext[i] == '\n') {
-      g.mColumn = 0;
+      g.mColumn = 1;
       g.mStartOfLine = true;
       g.mLeadingSpace = false;
     } else {
       ++g.mColumn;
-      g.mStartOfLine = false;
       g.mLeadingSpace = true;
     }
   }
+}
+
+int
+read_path(const char* yytext)
+{
+  static char sHeaderPath[200];
+  int yyrow;
+  sscanf(yytext, "# %d \"%s\"", &yyrow, sHeaderPath);
+  --yyrow;
+  sHeaderPath[strlen(sHeaderPath) - 1] = 0;
+  g.mFile = sHeaderPath;
+  return yyrow;
 }
 
 } // namespace lex

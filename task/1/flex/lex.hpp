@@ -2,6 +2,7 @@
 
 #include <string>
 #include <string_view>
+#include <cstring>
 
 namespace lex {
 
@@ -95,7 +96,7 @@ struct G
   Id mId{ YYEOF };              // 词号
   std::string_view mText;       // 对应文本
   std::string mFile;            // 文件路径
-  int mLine{ 0 }, mColumn{ 0 }; // 行号、列号
+  int mLine{ 1 }, mColumn{ 1 }; // 行号、列号
   bool mStartOfLine{ true };    // 是否是行首
   bool mLeadingSpace{ false };  // 是否有前导空格
 };
@@ -107,5 +108,8 @@ come(int tokenId, const char* yytext, int yyleng, int yylineno);
 
 void
 spaces(const char* yytext, int yyleng);
+
+int
+read_path(const char* yytext);
 
 } // namespace lex
