@@ -1,4 +1,5 @@
 import json
+import os
 import sys
 import argparse
 import logging
@@ -28,9 +29,12 @@ class LeaderBoard_Report:
 
 class ReportsManager:
 
-    def __init__(self):
+    def __init__(self, task_name='task'):
         self.tests = []
         self.testsleaderboard = []
+        self.tests_name_max_len = 0
+        self.testsleaderboard_name_max_len = 0
+        self.task_name = task_name
 
     def add_test_report(self,
                         name,
@@ -40,9 +44,12 @@ class ReportsManager:
                         output_path=None):
         self.tests.append(
             Test_Report(name, score, max_score, output, output_path))
+        self.tests_name_max_len = max(self.tests_name_max_len, len(name))
 
     def add_test_report_instance(self, Test_Report):
         self.tests.append(Test_Report)
+        self.tests_name_max_len = max(self.tests_name_max_len,
+                                      len(Test_Report.name))
 
     def add_leaderboard_report(self,
                                name,
@@ -52,32 +59,40 @@ class ReportsManager:
                                suffix=None):
         self.testsleaderboard.append(
             LeaderBoard_Report(name, value, order, is_desc, suffix))
+        self.testsleaderboard_name_max_len = max(
+            self.testsleaderboard_name_max_len, len(name))
 
     def add_leaderboard_report_instance(self, LeaderBoard_Report):
         self.testsleaderboard.append(LeaderBoard_Report)
+        self.testsleaderboard_name_max_len = max(
+            self.testsleaderboard_name_max_len, len(LeaderBoard_Report.name))
 
-    def toJson(self):
+    def to_json(self):
         # 返回一个 json 字符串，它有两个属性，一个是 test_reports，一个是 leaderboard_reports
         # test_reports 是一个列表，每一个元素是一个字典，包含了一个测试报告的信息
         # leaderboard_reports 是一个列表，每一个元素是一个字典，包含了一个排行榜报告的信息
         return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True)
 
-    def toTxt(self):
+    def to_txt(self):
         # 返回一个字符串，它包含了所有的测试报告和排行榜报告的信息
-        txt = ''
+        txt = u''
         for leaderboard in self.testsleaderboard:
-            txt += f'{leaderboard.name}:'.rjust(10)
-            txt += f'{leaderboard.value}'.ljust(10)
-            if leaderboard.suffix:
-                txt += f' {leaderboard.suffix}'.ljust(20)
-            txt += '\n'
+            if leaderboard.name == '总分':
+                txt += f'{self.task_name} 总分:'.encode('utf-8').decode('utf-8')
+                txt += f'{leaderboard.value}'.encode('utf-8').decode('utf-8')
+                if leaderboard.suffix:
+                    txt += f' {leaderboard.suffix}'.encode('utf-8').decode(
+                        'utf-8')
+                txt += '\n\n'.encode('utf-8').decode('utf-8')
         for test in self.tests:
-            txt += f'{test.score:.2f}'.rjust(8)
-            txt += '/'
-            txt += f'{test.max_score:.2f}'.ljust(8)
-            txt += f'{test.name}'.ljust(20)
-            txt += f'{test.output}'.rjust(20)
-            txt += '\n'
+            txt += f'{test.name}'.ljust(self.tests_name_max_len +
+                                        2).encode('utf-8').decode('utf-8')
+            txt += f'{test.score:.2f}'.rjust(8).encode('utf-8').decode('utf-8')
+            txt += '/'.encode('utf-8').decode('utf-8')
+            txt += f'{test.max_score:.2f}'.ljust(8).encode('utf-8').decode(
+                'utf-8')
+            txt += f'{test.output}'.ljust(20).encode('utf-8').decode('utf-8')
+            txt += '\n'.encode('utf-8').decode('utf-8')
         return txt
 
 
@@ -149,7 +164,9 @@ def score_one_case(task1_logger, condition_dict, manager, task1_test_log_level,
 
     # 创建文件处理器
     one_case_file_path = osp.join(case_abs_path, 'score.txt')
-    file_handler = logging.FileHandler(one_case_file_path, mode='w')
+    file_handler = logging.FileHandler(one_case_file_path,
+                                       mode='w',
+                                       encoding='utf-8')
     file_handler.addFilter(one_case_file_filter)
     file_handler.setFormatter(logging.Formatter('%(message)s'))
     file_handler.setLevel(logging.INFO)
@@ -197,33 +214,39 @@ def score_one_case(task1_logger, condition_dict, manager, task1_test_log_level,
         outputs = f.readlines()
     gc.collect()
 
-    if len(answers) != len(outputs):
+    def split_tokens(t):
+        tmp = str(t)
+        k1 = tmp.find("'")
+        k2 = tmp.rfind("'")
+        k3 = tmp.rfind("Loc=<")
+        flag0 = 1
+        if k1 == -1 or k2 == -1 or k3 == -1:
+            flag0 = 0
+        tok0 = tmp.split()[0].strip()
+        str0 = tmp[k1 + 1:k2].strip()
+        mid0 = str(tmp[k2 + 1:k3].strip().split())
+        loc0 = tmp[k3:].strip()
+        return [tok0, str0, mid0, loc0, flag0]
+
+    # 计算评分
+    tokens_count = len(answers) - 1
+    tokens_kind_correct_count = 0
+    tokens_location_correct_count = 0
+    tokens_unrelated_correct_count = 0
+    output_tokens_count = len(outputs)
+
+    tok1, str1, mid1, loc1, flag1 = split_tokens(outputs[-1])
+    if flag1 == 1 and tok1 == 'EOF':
+        output_tokens_count -= 1
+
+    if tokens_count != output_tokens_count:
         task1_logger.error('用户答案的词法单元数量与标准答案不一致，请检查是否有遗漏或多余的词法单元')
         score = 0.0
         manager.add_test_report(case, score, 100.0, '词法单元数量不一致',
                                 one_case_file_path)
         return score_one_case_exit(score)
 
-    # 计算评分
-    tokens_count = len(answers)
-    tokens_kind_correct_count = 0
-    tokens_location_correct_count = 0
-    tokens_unrelated_correct_count = 0
     for i in range(tokens_count):
-
-        def split_tokens(t):
-            tmp = str(t)
-            k1 = tmp.find("'")
-            k2 = tmp.rfind("'")
-            k3 = tmp.rfind("Loc=<")
-            flag0 = 1
-            if k1 == -1 or k2 == -1 or k3 == -1:
-                flag0 = 0
-            tok0 = tmp.split()[0].strip()
-            str0 = tmp[k1 + 1:k2].strip()
-            mid0 = str(tmp[k2 + 1:k3].strip().split())
-            loc0 = tmp[k3:].strip()
-            return [tok0, str0, mid0, loc0, flag0]
 
         tok0, str0, mid0, loc0, flag0 = split_tokens(answers[i])
         tok1, str1, mid1, loc1, flag1 = split_tokens(outputs[i])
@@ -270,15 +293,17 @@ def score_one_case(task1_logger, condition_dict, manager, task1_test_log_level,
             continue
         tokens_unrelated_correct_count += 1
 
-    task1_logger.info('\nINFO: 词法单元总数目: %d' % tokens_count)
-    task1_logger.info('INFO: 类型及值正确的词法单元数目: %d' % tokens_kind_correct_count)
-    task1_logger.info('INFO: 位置正确的词法单元数目: %d' % tokens_location_correct_count)
-    task1_logger.info('INFO: 识别无关字符正确的词法单元数目: %d' %
-                      tokens_unrelated_correct_count)
+    task1_logger.info('\n')
+    task1_logger.info(
+        f'INFO: 类型及值正确的词法单元数目: {tokens_kind_correct_count}/{tokens_count}')
+    task1_logger.info(
+        f'INFO: 位置正确的词法单元数目: {tokens_location_correct_count}/{tokens_count}')
+    task1_logger.info('INFO: 识别无关字符正确的词法单元数目: ' +
+                      f'{tokens_unrelated_correct_count}/{tokens_count}')
     # 计算评分
-    score = (tokens_kind_correct_count * 0.6 +
-             tokens_location_correct_count * 0.3 +
-             tokens_unrelated_correct_count * 0.1) * 1.0 / tokens_count * 100.0
+    score = (tokens_kind_correct_count * 1.0 / tokens_count * 0.6 +
+             tokens_location_correct_count * 1.0 / tokens_count * 0.3 +
+             tokens_unrelated_correct_count * 1.0 / tokens_count * 0.1) * 100.0
     manager.add_test_report(case, score, 100.0, '评测正常执行', one_case_file_path)
     return score_one_case_exit(score)
 
@@ -293,6 +318,9 @@ def score_all_case(task1_logger, condition_dict, manager, task1_test_log_level,
                                                       task1_test_weight)
 
     if not flag:
+        task1_logger.error('检测目录出错')
+        manager.add_test_report('检测目录', 0.0, 100.0, '检测目录出错')
+        manager.add_leaderboard_report('总分', 0.0, 1, True)
         return 0
 
     # 对每一个算例进行评分
@@ -303,18 +331,21 @@ def score_all_case(task1_logger, condition_dict, manager, task1_test_log_level,
     for case, weight in task1_test_weight_dict.items():
         score = score_one_case(task1_logger, condition_dict, manager,
                                task1_test_log_level, task1_test_dir, case)
-        task1_logger.info(f'[{case_idx}/{case_len}] {case} 分数: {score}')
+        task1_logger.info(f'[{case_idx}/{case_len}] {case} 分数: {score:.2f}')
         weighted_average_score, weights_sum = make_weighted_averge(
             weighted_average_score, weights_sum, score, weight)
         case_idx += 1
 
     manager.add_leaderboard_report('总分', weighted_average_score, 1, True)
-    task1_logger.info('总分: %f' % weighted_average_score)
+    task1_logger.info('总分: {weighted_average_score:.2f}')
     return 1
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
+    parser.add_argument('task1_test_ctest',
+                        type=str,
+                        help='task1 调用测试的可执行文件路径')
     parser.add_argument('task1_test_dir', type=str, help='task1 的测试总目录')
     parser.add_argument('task1_test_weight',
                         type=str,
@@ -337,6 +368,8 @@ if __name__ == '__main__':
         'one_case_file': False
     }
 
+    # 进行 CTEST
+    os.system(f'{args.task1_test_ctest} --test-dir {args.task1_test_dir}')
     # 生成总成绩单的日志保存到 task1_test_dir 下的 score.txt 文件中
     all_cases_file_filter = CustomFilter(name='all_cases_file_filter',
                                          condition_dict=condition_dict,
@@ -371,7 +404,7 @@ if __name__ == '__main__':
     task1_logger.info('Task1 测试用例及权重文件路径: %s' % args.task1_test_weight)
 
     task1_logger.info('-' * 40)
-    manager = ReportsManager()
+    manager = ReportsManager(task_name='task1')
     # 对 task1 的结果进行评分
     grade_done = score_all_case(task1_logger, condition_dict, manager,
                                 args.task1_test_log_level, args.task1_test_dir,
@@ -381,7 +414,16 @@ if __name__ == '__main__':
     else:
         task1_logger.error('Task1 评分出错.')
     task1_logger.info('-' * 40)
-    results_txt = manager.toTxt()
+    results_txt = manager.to_txt()
     condition_dict['all_cases_file'] = True
     task1_logger.info(results_txt)
-    results_json = manager.toJson()
+    condition_dict['all_cases_file'] = False
+    task1_logger.info('评分结果已保存到: %s' % scoresfile_for_all_cases)
+    task1_logger.info('各测例的评分结果已保存到各自的 score.txt 文件中.')
+
+    results_json = manager.to_json()
+    jsonfile_for_all_cases = osp.abspath(
+        osp.join(args.task1_test_dir, 'score.json'))
+    with open(jsonfile_for_all_cases, 'w') as f:
+        f.write(results_json)
+    task1_logger.info('JSON格式的评分结果已保存到: %s' % jsonfile_for_all_cases)

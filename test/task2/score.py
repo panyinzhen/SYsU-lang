@@ -1,3 +1,4 @@
+import os
 import sys
 import json
 import gc
@@ -28,9 +29,12 @@ class LeaderBoard_Report:
 
 class ReportsManager:
 
-    def __init__(self):
+    def __init__(self, task_name='task'):
         self.tests = []
         self.testsleaderboard = []
+        self.tests_name_max_len = 0
+        self.testsleaderboard_name_max_len = 0
+        self.task_name = task_name
 
     def add_test_report(self,
                         name,
@@ -40,9 +44,12 @@ class ReportsManager:
                         output_path=None):
         self.tests.append(
             Test_Report(name, score, max_score, output, output_path))
+        self.tests_name_max_len = max(self.tests_name_max_len, len(name))
 
     def add_test_report_instance(self, Test_Report):
         self.tests.append(Test_Report)
+        self.tests_name_max_len = max(self.tests_name_max_len,
+                                      len(Test_Report.name))
 
     def add_leaderboard_report(self,
                                name,
@@ -52,32 +59,40 @@ class ReportsManager:
                                suffix=None):
         self.testsleaderboard.append(
             LeaderBoard_Report(name, value, order, is_desc, suffix))
+        self.testsleaderboard_name_max_len = max(
+            self.testsleaderboard_name_max_len, len(name))
 
     def add_leaderboard_report_instance(self, LeaderBoard_Report):
         self.testsleaderboard.append(LeaderBoard_Report)
+        self.testsleaderboard_name_max_len = max(
+            self.testsleaderboard_name_max_len, len(LeaderBoard_Report.name))
 
-    def toJson(self):
+    def to_json(self):
         # 返回一个 json 字符串，它有两个属性，一个是 test_reports，一个是 leaderboard_reports
         # test_reports 是一个列表，每一个元素是一个字典，包含了一个测试报告的信息
         # leaderboard_reports 是一个列表，每一个元素是一个字典，包含了一个排行榜报告的信息
         return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True)
 
-    def toTxt(self):
+    def to_txt(self):
         # 返回一个字符串，它包含了所有的测试报告和排行榜报告的信息
-        txt = ''
+        txt = u''
         for leaderboard in self.testsleaderboard:
-            txt += f'{leaderboard.name}:'.rjust(10)
-            txt += f'{leaderboard.value}'.ljust(10)
-            if leaderboard.suffix:
-                txt += f' {leaderboard.suffix}'.ljust(20)
-            txt += '\n'
+            if leaderboard.name == '总分':
+                txt += f'{self.task_name} 总分:'.encode('utf-8').decode('utf-8')
+                txt += f'{leaderboard.value}'.encode('utf-8').decode('utf-8')
+                if leaderboard.suffix:
+                    txt += f' {leaderboard.suffix}'.encode('utf-8').decode(
+                        'utf-8')
+                txt += '\n\n'.encode('utf-8').decode('utf-8')
         for test in self.tests:
-            txt += f'{test.score:.2f}'.rjust(8)
-            txt += '/'
-            txt += f'{test.max_score:.2f}'.ljust(8)
-            txt += f'{test.name}'.ljust(20)
-            txt += f'{test.output}'.rjust(20)
-            txt += '\n'
+            txt += f'{test.name}'.ljust(self.tests_name_max_len +
+                                        2).encode('utf-8').decode('utf-8')
+            txt += f'{test.score:.2f}'.rjust(8).encode('utf-8').decode('utf-8')
+            txt += '/'.encode('utf-8').decode('utf-8')
+            txt += f'{test.max_score:.2f}'.ljust(8).encode('utf-8').decode(
+                'utf-8')
+            txt += f'{test.output}'.ljust(20).encode('utf-8').decode('utf-8')
+            txt += '\n'.encode('utf-8').decode('utf-8')
         return txt
 
 
@@ -139,7 +154,7 @@ def make_weighted_averge(now_weighted_averge, now_weights_sum, new_value,
 
 
 def output_node(n, ast0, ast1, task2_logger: logging.Logger):
-    task2_logger.error('>---')
+    task2_logger.error('\n>---')
     ast0_noinner = ast0.copy()
     ast1_noinner = ast1.copy()
     for key in ["inner", "id"]:
@@ -149,7 +164,34 @@ def output_node(n, ast0, ast1, task2_logger: logging.Logger):
             del ast1_noinner[key]
     task2_logger.error('标准答案节点: \n' + str(ast0_noinner))
     task2_logger.error('用户答案节点: \n' + str(ast1_noinner))
-    task2_logger.error('<---')
+    task2_logger.error('\n<---')
+    return n
+
+
+def output_node_include_inner(n, ast0, ast1, inner_n,
+                              task2_logger: logging.Logger):
+    task2_logger.error('\n>---')
+    ast0_copy = ast0.copy()
+    ast1_copy = ast1.copy()
+    for key in ["id"]:
+        if key in ast0_copy:
+            del ast0_copy[key]
+        if key in ast1_copy:
+            del ast1_copy[key]
+    ast0_inner_n = None
+    ast1_inner_n = None
+    for key in ["inner"]:
+        if key in ast0_copy:
+            ast0_inner_n = ast0_copy[key][inner_n]
+            del ast0_copy[key]
+        if key in ast1_copy:
+            ast1_inner_n = ast1_copy[key][inner_n]
+            del ast1_copy[key]
+    task2_logger.error('标准答案节点: \n' + str(ast0_copy) + '\n')
+    task2_logger.error('标准答案节点inner的第n项: \n' + str(ast0_inner_n) + '\n')
+    task2_logger.error('用户答案节点: \n' + str(ast1_copy) + '\n')
+    task2_logger.error('用户答案节点inner的第n项: \n' + str(ast1_inner_n) + '\n')
+    task2_logger.error('\n<---')
     return n
 
 
@@ -261,8 +303,16 @@ def check_ast(ast0, ast1, ast_info, status, task2_logger: logging.Logger,
                         "level1_correct"] or not son_correct_dict[
                             "level2_correct"] or not son_correct_dict[
                                 "level3_correct"]:
-                    correct_dict["level2_correct"] = False
                     correct_dict["level3_correct"] = False
+                    if task2_test_log_level >= 3:
+                        task2_logger.error("\nERROR: inner 错误")
+                        output_node_include_inner(1, ast0, ast1, i,
+                                                  task2_logger)
+                    if ast0.get('kind') == 'InitListExpr':
+                        correct_dict["level2_correct"] = False
+                        if task2_test_log_level >= 2 and task2_logger < 3:
+                            task2_logger.error("\nERROR: inner 错误")
+                            output_node(1, ast0, ast1, i, task2_logger)
         else:
             value1 = get_value1(key, ast0, ast1, task2_test_log_level,
                                 level1_kind, level2_kind, correct_dict)
@@ -353,9 +403,27 @@ def score_one_case(task2_logger, condition_dict, manager, task2_test_log_level,
     with open(output_path, 'r') as f:
         outputs = f.read()
     gc.collect()
-    ast0 = json.loads(answers)
+
+    try:
+        ast0 = json.loads(answers)
+    except Exception as e:
+        task2_logger.error('标准答案格式错误')
+        task2_logger.error(e)
+        score = 0.0
+        manager.add_test_report(case, score, 100.0, '标准答案格式错误',
+                                one_case_file_path)
+        return score_one_case_exit(score)
     gc.collect()
-    ast1 = json.loads(outputs)
+
+    try:
+        ast1 = json.loads(outputs)
+    except Exception as e:
+        task2_logger.error('用户答案格式错误')
+        task2_logger.error(e)
+        score = 0.0
+        manager.add_test_report(case, score, 100.0, '用户答案格式错误',
+                                one_case_file_path)
+        return score_one_case_exit(score)
     gc.collect()
 
     status = 0
@@ -395,6 +463,9 @@ def score_all_case(task2_logger, condition_dict, manager, task2_test_log_level,
                                                       task2_test_weight)
 
     if not flag:
+        task2_logger.error('检测目录出错')
+        manager.add_test_report('检测目录', 0.0, 100.0, '检测目录出错')
+        manager.add_leaderboard_report('总分', 0.0, 1, True)
         return 0
 
     # 对每一个算例进行评分
@@ -405,18 +476,21 @@ def score_all_case(task2_logger, condition_dict, manager, task2_test_log_level,
     for case, weight in task2_test_weight_dict.items():
         score = score_one_case(task2_logger, condition_dict, manager,
                                task2_test_log_level, task2_test_dir, case)
-        task2_logger.info(f'[{case_idx}/{case_len}] {case} 分数: {score}')
+        task2_logger.info(f'[{case_idx}/{case_len}] {case} 分数: {score:.2f}')
         weighted_average_score, weights_sum = make_weighted_averge(
             weighted_average_score, weights_sum, score, weight)
         case_idx += 1
 
     manager.add_leaderboard_report("总分", weighted_average_score, 1, True)
-    task2_logger.info('总分: %f' % weighted_average_score)
+    task2_logger.info('总分: {weighted_average_score:.2f}')
     return 1
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
+    parser.add_argument('task2_test_ctest',
+                        type=str,
+                        help='task2 调用测试的可执行文件路径')
     parser.add_argument('task2_test_dir', type=str, help='task2 的测试总目录')
     parser.add_argument('task2_test_weight',
                         type=str,
@@ -439,6 +513,8 @@ if __name__ == '__main__':
         'one_case_file': False
     }
 
+    # 进行 CTEST
+    os.system(f'{args.task2_test_ctest} --test-dir {args.task2_test_dir}')
     # 生成总成绩单的日志保存到 task2_test_dir 下的 score.txt 文件中
     all_cases_file_filter = CustomFilter(name='all_cases_file_filter',
                                          condition_dict=condition_dict,
@@ -473,7 +549,7 @@ if __name__ == '__main__':
     task2_logger.info('Task2 测试用例及权重文件路径: %s' % args.task2_test_weight)
 
     task2_logger.info('-' * 40)
-    manager = ReportsManager()
+    manager = ReportsManager(task_name='task2')
     # 对 task2 的结果进行评分
     grade_done = score_all_case(task2_logger, condition_dict, manager,
                                 args.task2_test_log_level, args.task2_test_dir,
@@ -483,7 +559,16 @@ if __name__ == '__main__':
     else:
         task2_logger.error('Task2 评分出错.')
     task2_logger.info('-' * 40)
-    results_txt = manager.toTxt()
+    results_txt = manager.to_txt()
     condition_dict['all_cases_file'] = True
     task2_logger.info(results_txt)
-    results_json = manager.toJson()
+    condition_dict['all_cases_file'] = False
+    task2_logger.info('评分结果已保存到: %s' % scoresfile_for_all_cases)
+    task2_logger.info('各测例的评分结果已保存到各自的 score.txt 文件中.')
+
+    results_json = manager.to_json()
+    jsonfile_for_all_cases = osp.abspath(
+        osp.join(args.task2_test_dir, 'score.json'))
+    with open(jsonfile_for_all_cases, 'w') as f:
+        f.write(results_json)
+    task2_logger.info('JSON格式的评分结果已保存到: %s' % jsonfile_for_all_cases)

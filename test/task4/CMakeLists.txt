@@ -21,9 +21,8 @@ endif()
 # 对实验进行评分
 add_custom_target(
   task4-score
-  ${CTEST_COMMAND}
   COMMAND
-    ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/score.py
+    ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/score.py ${CTEST_COMMAND}
     ${CMAKE_CURRENT_BINARY_DIR} ${TASK4_CASES_WEIGHT_TXT}
     ${CLANG_PLUS_EXECUTABLE} ${_rtlib_path} 10
   USES_TERMINAL

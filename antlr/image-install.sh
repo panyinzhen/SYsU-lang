@@ -1,5 +1,6 @@
 #!/bin/sh
 ANTLRDIR=$1
+TARGETPLATFORM=$2
 ANTLRDIR=$(realpath $ANTLRDIR)
 # download the source
 wget -c https://www.antlr.org/download/antlr-4.13.1-complete.jar -P $ANTLRDIR
