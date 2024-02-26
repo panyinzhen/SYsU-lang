@@ -31,14 +31,33 @@ private:
     return &obj;
   }
 
+  FunctionDecl* cur_func; // 存放 ReturnStmt 对应的 FunctionDecl
+
   Type gety(const llvm::json::Object& jobj);
+  Expr::Cate getvc(const llvm::json::Object& jobj);
 
   Decl* decl(const llvm::json::Object& jobj);
   VarDecl* var_decl(const llvm::json::Object& jobj);
   FunctionDecl* function_decl(const llvm::json::Object& jobj);
 
+  //============================================================================
+  // 表达式
+  //============================================================================
+  Expr* expr(const llvm::json::Object& jobj);
+  BinaryExpr* binary_expr(const llvm::json::Object& jobj);
+  ImplicitCastExpr* implicit_cast_expr(const llvm::json::Object& jobj);
+  DeclRefExpr* declref_expr(const llvm::json::Object& jobj);
+  IntegerLiteral* integer_literal(const llvm::json::Object& jobj);
+  ExprStmt* expr_stmt(const llvm::json::Object& jobj);
+
+  //============================================================================
+  // 语句
+  //============================================================================
+
   Stmt* stmt(const llvm::json::Object& jobj);
   CompoundStmt* compound_stmt(const llvm::json::Object& jobj);
+  DeclStmt* decl_stmt(const llvm::json::Object& jobj);
+  ReturnStmt* return_stmt(const llvm::json::Object& jobj);
 
 private:
   /**

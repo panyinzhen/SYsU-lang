@@ -287,7 +287,8 @@ EmitIR::operator()(ImplicitCastExpr* obj)
   auto& irb = *_curIrb;
   switch (obj->kind) {
     case ImplicitCastExpr::kLValueToRValue: {
-      auto loadVal = irb.CreateLoad(sub->getType(), sub);
+      auto ty = self(obj->sub->type);
+      auto loadVal = irb.CreateLoad(ty, sub);
       return loadVal;
     }
 

@@ -81,6 +81,18 @@ Json2Asg::var_decl(const llvm::json::Object& jobj)
   auto obj = make<VarDecl>(jobj_id(jobj));
   obj->name = jobj.getString("name").value();
   obj->type = gety(jobj);
+
+  auto inner = jobj.getArray("inner");
+  if (inner) {
+    for (auto&& jval : *inner) {
+      auto jobj = jval.getAsObject();
+      ASSERT(jobj);
+      if (auto p = expr(*jobj))
+        obj->init = p;
+    }
+  } else
+    obj->init = nullptr;
+
   return obj;
 }
 
@@ -92,7 +104,10 @@ Json2Asg::function_decl(const llvm::json::Object& jobj)
   obj->type = gety(jobj);
 
   auto inner = jobj.getArray("inner");
+  // if(!inner)
+  //   return nullptr;
   ASSERT(inner);
+  cur_func = obj;
 
   for (auto&& jval : *inner) {
     auto jobj = jval.getAsObject();
@@ -116,17 +131,245 @@ Json2Asg::function_decl(const llvm::json::Object& jobj)
   return obj;
 }
 
+Expr*
+Json2Asg::expr(const llvm::json::Object& jobj)
+{
+  auto kind = jobj.getString("kind");
+  ASSERT(kind);
+
+  if (kind == "BinaryOperator")
+    return binary_expr(jobj);
+
+  if (kind == "ImplicitCastExpr")
+    return implicit_cast_expr(jobj);
+
+  if (kind == "DeclRefExpr")
+    return declref_expr(jobj);
+
+  if (kind == "IntegerLiteral")
+    return integer_literal(jobj);
+
+  return nullptr;
+}
+
+BinaryExpr*
+Json2Asg::binary_expr(const llvm::json::Object& jobj)
+{
+  auto obj = make<BinaryExpr>(jobj_id(jobj));
+  obj->type = gety(jobj);
+  obj->cate = getvc(jobj);
+
+  auto a = jobj.getString("opcode");
+  ASSERT(a);
+  auto op = a->str();
+  if (op == "*")
+    obj->op = BinaryExpr::Op::kMul;
+  else if (op == "/")
+    obj->op = BinaryExpr::Op::kDiv;
+  else if (op == "%")
+    obj->op = BinaryExpr::Op::kMod;
+  else if (op == "+")
+    obj->op = BinaryExpr::Op::kAdd;
+  else if (op == "-")
+    obj->op = BinaryExpr::Op::kSub;
+  else if (op == ">")
+    obj->op = BinaryExpr::Op::kGt;
+  else if (op == "<")
+    obj->op = BinaryExpr::Op::kLt;
+  else if (op == ">=")
+    obj->op = BinaryExpr::Op::kGe;
+  else if (op == "<=")
+    obj->op = BinaryExpr::Op::kLe;
+  else if (op == "==")
+    obj->op = BinaryExpr::Op::kEq;
+  else if (op == "!=")
+    obj->op = BinaryExpr::Op::kNe;
+  else if (op == "&&")
+    obj->op = BinaryExpr::Op::kAnd;
+  else if (op == "||")
+    obj->op = BinaryExpr::Op::kOr;
+  else if (op == "=")
+    obj->op = BinaryExpr::Op::kAssign;
+  else if (op == ",")
+    obj->op = BinaryExpr::Op::kComma;
+  else
+    obj->op = BinaryExpr::Op::kINVALID;
+  // TODO: BinaryExpr::Op::kIndex
+
+  auto inner = jobj.getArray("inner");
+  ASSERT(inner);
+
+  int index = 0;
+  for (auto&& jval : *inner) {
+    if (auto p = jval.getAsObject()) {
+      if (index == 0)
+        obj->lft = expr(*p);
+      else
+        obj->rht = expr(*p);
+      index++;
+    }
+  }
+  return obj;
+}
+
+Expr::Cate
+Json2Asg::getvc(const llvm::json::Object& jobj)
+{
+  auto p = jobj.getString("valueCategory");
+  ASSERT(p);
+  auto valueCategory = p->str();
+  if (valueCategory == "lvalue")
+    return Expr::Cate::kLValue;
+  return Expr::Cate::kRValue;
+}
+
+ImplicitCastExpr*
+Json2Asg::implicit_cast_expr(const llvm::json::Object& jobj)
+{
+  auto obj = make<ImplicitCastExpr>(jobj_id(jobj));
+  obj->type = gety(jobj);
+  obj->cate = getvc(jobj);
+
+  auto a = jobj.getString("castKind");
+  ASSERT(a);
+  auto castkind = a->str();
+  if (castkind == "LValueToRValue")
+    obj->kind = ImplicitCastExpr::kLValueToRValue;
+  else if (castkind == "IntegralCast")
+    obj->kind = ImplicitCastExpr::kIntegralCast;
+  else if (castkind == "ArrayToPointerDecay")
+    obj->kind = ImplicitCastExpr::kArrayToPointerDecay;
+  else if (castkind == "FunctionToPointerDecay")
+    obj->kind = ImplicitCastExpr::kFunctionToPointerDecay;
+  else if (castkind == "NoOp")
+    obj->kind = ImplicitCastExpr::kNoOp;
+  else
+    obj->kind = ImplicitCastExpr::kINVALID;
+
+  auto inner = jobj.getArray("inner");
+  ASSERT(inner);
+  for (auto&& jval : *inner) {
+    auto jobj = jval.getAsObject();
+    ASSERT(jobj);
+    if (auto p = expr(*jobj))
+      obj->sub = p;
+  }
+  return obj;
+}
+
+DeclRefExpr*
+Json2Asg::declref_expr(const llvm::json::Object& jobj)
+{
+  auto obj = make<DeclRefExpr>(jobj_id(jobj));
+  obj->type = gety(jobj);
+  obj->cate = getvc(jobj);
+
+  auto a = jobj.getObject("referencedDecl");
+  ASSERT(a);
+  auto id = jobj_id(*a);
+  obj->decl = dynamic_cast<Decl*>(mIdMap[id]);
+
+  return obj;
+}
+
+IntegerLiteral*
+Json2Asg::integer_literal(const llvm::json::Object& jobj)
+{
+  auto obj = make<IntegerLiteral>(jobj_id(jobj));
+  obj->type = gety(jobj);
+  obj->cate = getvc(jobj);
+
+  auto a = jobj.getString("value");
+  ASSERT(a);
+  auto val = a->str();
+  obj->val = strtoll(val.c_str(), NULL, 10);
+  ASSERT(errno != ERANGE);
+  return obj;
+}
+
+ExprStmt*
+Json2Asg::expr_stmt(const llvm::json::Object& jobj)
+{
+  auto obj = make<ExprStmt>(jobj_id(jobj));
+  obj->expr = expr(jobj);
+  return obj;
+}
+
 Stmt*
 Json2Asg::stmt(const llvm::json::Object& jobj)
 {
-  ABORT(); // TODO
+  auto kind = jobj.getString("kind");
+  ASSERT(kind);
+
+  if (kind == "DeclStmt")
+    return decl_stmt(jobj);
+
+  if (kind == "ExprStmt")
+    return nullptr;
+
+  if (kind == "ReturnStmt")
+    return return_stmt(jobj);
+
+  if (kind == "BinaryOperator")
+    return expr_stmt(jobj);
+
+  return nullptr;
 }
 
 CompoundStmt*
 Json2Asg::compound_stmt(const llvm::json::Object& jobj)
 {
-  // TODO
-  return make<CompoundStmt>(jobj_id(jobj));
+  auto obj = make<CompoundStmt>(jobj_id(jobj));
+  auto inner = jobj.getArray("inner");
+  if (!inner)
+    return nullptr;
+
+  for (auto&& jval : *inner) {
+    auto jobj = jval.getAsObject();
+    ASSERT(jobj);
+    if (auto p = stmt(*jobj))
+      obj->subs.emplace_back(p);
+  }
+
+  return obj;
+}
+
+DeclStmt*
+Json2Asg::decl_stmt(const llvm::json::Object& jobj)
+{
+  auto obj = make<DeclStmt>(jobj_id(jobj));
+  auto inner = jobj.getArray("inner");
+  if (!inner)
+    return nullptr;
+
+  for (auto&& jval : *inner) {
+    auto jobj = jval.getAsObject();
+    ASSERT(jobj);
+    if (auto p = decl(*jobj))
+      obj->decls.emplace_back(p);
+  }
+
+  return obj;
+}
+
+ReturnStmt*
+Json2Asg::return_stmt(const llvm::json::Object& jobj)
+{
+  auto obj = make<ReturnStmt>(jobj_id(jobj));
+  auto inner = jobj.getArray("inner");
+  ASSERT(inner);
+  // if(!inner)
+  //   return nullptr;
+
+  for (auto&& jval : *inner) {
+    auto jobj = jval.getAsObject();
+    ASSERT(jobj);
+    if (auto p = expr(*jobj))
+      obj->expr = p;
+  }
+  obj->func = cur_func;
+
+  return obj;
 }
 
 // ========================================================================== //
@@ -392,15 +635,16 @@ Json2Asg::parse_args(const char* s, std::vector<Decl*>& v)
     p = match(skip_spaces(s), ",");
     if (!p)
       break;
-    p = parse_type(skip_spaces(p), ty);
+    Type ty2;
+    p = parse_type(skip_spaces(p), ty2);
     if (!p)
       return nullptr;
     s = p;
-    if (ty.texp)
-      ty.texp = turn_texp(ty.texp); // 将类型表达式内外翻转
+    if (ty2.texp)
+      ty2.texp = turn_texp(ty2.texp); // 将类型表达式内外翻转
 
     auto& decl = mMgr.make<Decl>();
-    decl.type = ty;
+    decl.type = ty2;
     v.push_back(&decl);
   }
 
